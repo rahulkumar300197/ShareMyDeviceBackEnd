@@ -112,6 +112,16 @@ module.exports = router => {
 		});  		
 	 });
 
+	 router.post('/forgotpassword',functions.checkAutorization,(req, res) => {
+		functions.forgotPassword(req.body)
+		.then((data) => {
+			res.status(data.status).json({message:data.message});
+		})
+		.catch((err) => {
+			res.status(err.status).json({message: err.message});
+		});  		
+	 });
+
 	router.post('/test',(req, res) => {
 	   var id = {"_id":req.body._id};	
        functions.test(id);  		
