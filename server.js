@@ -9,9 +9,9 @@ const port 	   = process.env.PORT || 8080;
 
 app.use(bodyParser.json());
 app.use(logger('dev'));
-
 require('./routes')(router);
 app.use('/api/v1', router);
+
 
 app.listen(port);
 

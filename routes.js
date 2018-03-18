@@ -112,7 +112,22 @@ module.exports = router => {
 		});  		
 	 });
 
-	 router.post('/forgotpassword',functions.checkAutorization,(req, res) => {
+	 /*router.get('/resetpasswordbytoken', functions.validatetoken ,(req, res) => {
+		 
+	 });*/
+
+	router.post('/resetpasswordbytoken',(req, res) => {
+		console.log(JSON.stringify(req.body));
+		functions.resetPasswordByToken(req.body)
+		.then((data) => {
+			res.status(data.status).json({message:data.message});
+		})
+		.catch((err) => {
+			res.status(err.status).json({message: err.message});
+		});		  		
+	});
+
+	 router.post('/forgotpassword',(req, res) => {
 		functions.forgotPassword(req.body)
 		.then((data) => {
 			res.status(data.status).json({message:data.message});

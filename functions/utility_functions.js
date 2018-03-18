@@ -288,38 +288,39 @@ exports.forgotPassword = (data) => {
 				reject({message:"Invalid Email", status:404});
 			} else {
 				const resetPasswordToken = jwt.sign({email:user_data.email}, config.secret, { expiresIn: 300 } );
-				user.findByIdAndUpdate(user_data._id, {reset_password_token:resetPasswordToken}, function (err, data) {
+				console.log(resetPasswordToken,"token");
+				user.findByIdAndUpdate(user_data._id, {forgot_password_token:resetPasswordToken}, function (err, data) {
 				    if (err) {
 
 					} else {
-						nodemailer.createTestAccount((err, account) => {
-							let transporter = nodemailer.createTransport({
-								host: 'smtp.gmail.com',
-								port: 587,
-								secure: false, // true for 465, false for other ports
-								auth: {
-									user: config.email, // generated ethereal user
-									pass: config.password // generated ethereal password
-								}
-							});
+						let transporter = nodemailer.createTransport({
+							host: 'smtp.gmail.com',
+							port: 587,
+							secure: false, // true for 465, false for other ports
+							auth: {
+								user: config.email, // generated ethereal user
+								pass: config.password // generated ethereal password
+							}
+						});
 							
-							let mailOptions = {
-								from: '"Fred Foo 👻" <rahulkumar310197@gmail.com>', // sender address
-								to: data.email, // list of receivers
-								subject: 'Hello ✔', // Subject line
-								html: `Hello ${user.name},<br><br>
-    			                      &nbsp;&nbsp;&nbsp;&nbsp; Your reset password token is <b>${resetPasswordToken}</b>. 
-    			                      If you are viewing this mail from a Android Device click this <a href = "http://learn2crack/resetpasswordbytoken&token=${resetPasswordToken}">link</a>. 
-    			                      The token is valid for only 5 minutes.<br><br>
-    			                      Thanks,<br>
-    			                      Share My Device.`
-							};
+						let mailOptions = {
+							from: '"ShareMyDevice"'+"<"+config.email+">", // sender address
+							to: data.email, // list of receivers
+							subject: 'Reset Password', // Subject line
+							html: `Hello ${data.first_name},<br><br>
+								  &nbsp;&nbsp;&nbsp;&nbsp; Your reset password link is there:-<br>
+    			                  http://localhost:8080/api/v1/resetpasswordbytoken?token=${resetPasswordToken}<br> 
+    			                  The token is valid for only 5 minutes.<br><br>
+    			                  Thanks,<br>
+    			                  Share My Device.`
+						};
 				
-							transporter.sendMail(mailOptions, (error, info) => {
-								if (error) {
-									return console.log(error);
-								}
-							});
+						transporter.sendMail(mailOptions, (error, info) => {
+							if (error) {
+								reject({message:err,status:404});
+							} else {
+								resolve({message:"Reset Password Link has been sent to your mail",status:200});
+							}
 						});
 					}
 			    });
@@ -327,6 +328,27 @@ exports.forgotPassword = (data) => {
 		});
 	});	
 }
+
+exports.resetPasswordByToken = (data) => {
+	return new Promise((resolve,reject) => {
+		jwt.verify(data.token, config.secret,(err, decoded) => {
+			if (err) {
+				resolve({status: 200, message:err});
+			} else {
+				console.log(data.password,"pass");
+				user.findOne({email: decoded.email},(err,user_data) => {
+					user.findByIdAndUpdate(user_data._id, {hashed_password:hashPasswordUsingBcrypt(data.password),forgot_password_token:""},(err, updated_data) => {
+						if (err) {
+							reject({status:401, message: err});
+						} else {
+							resolve({status:200, message:"Password Sucessfully Changed"});
+						}
+					});
+				});
+			}
+		});
+	});	
+}	
 
 exports.test = (user_id) => {
   user.find(user_id,(err,data)=>{ 
