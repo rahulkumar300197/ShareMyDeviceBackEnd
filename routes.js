@@ -12,7 +12,7 @@ module.exports = router => {
 		const data = req.body;
 		//console.log(JSON.stringify(req.body));
 
-		if (!data.first_name || !data.last_name || !data.email || !data.password || !data.first_name.trim() || !data.last_name.trim() || !data.email.trim() || !data.password.trim()) {
+		if (!data.name || !data.email || !data.password || !data.ame.trim() || !data.email.trim() || !data.password.trim()) {
 
 			res.status(400).json({message: 'Invalid Request !'});
 

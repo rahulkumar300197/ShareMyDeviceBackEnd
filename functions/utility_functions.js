@@ -68,8 +68,7 @@ exports.registerUser = (data) => {
 	//console.log(data.ip);
 	return new Promise((resolve,reject) => {
 		const newUser = new user({
-			first_name : data.first_name,
-			last_name : data.last_name,
+			name : data.name,
 			email : data.email, 
 			mobile_no : data.mobile_no,
 			hashed_password	: hashPasswordUsingBcrypt(data.password)
@@ -307,7 +306,7 @@ exports.forgotPassword = (data) => {
 							from: '"ShareMyDevice"'+"<"+config.email+">", // sender address
 							to: data.email, // list of receivers
 							subject: 'Reset Password', // Subject line
-							html: `Hello ${data.first_name},<br><br>
+							html: `Hello ${data.name},<br><br>
 								  &nbsp;&nbsp;&nbsp;&nbsp; Your reset password link is there:-<br>
     			                  http://localhost:8080/api/v1/resetpasswordbytoken?token=${resetPasswordToken}<br> 
     			                  The token is valid for only 5 minutes.<br><br>
