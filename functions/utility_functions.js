@@ -223,6 +223,7 @@ exports.emailPasswordLogin = (data) => {
 								.then((device) => {
 									user_data.hashed_password = undefined;
 									user_data._id= undefined;
+									user_data.forgot_password_token=undefined;
                   resolve({ data: {access_token: token, user_data: user_data, device_data: device},status:200});
 								})
 								.catch((err) => {
