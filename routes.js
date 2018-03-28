@@ -127,7 +127,7 @@ module.exports = router => {
 		});		  		
 	});
 
-	 router.post('/forgotpassword',(req, res) => {
+	router.post('/forgotpassword',(req, res) => {
 		functions.forgotPassword(req.body)
 		.then((data) => {
 			res.status(data.status).json({message:data.message});
@@ -135,8 +135,29 @@ module.exports = router => {
 		.catch((err) => {
 			res.status(err.status).json({message: err.message});
 		});  		
-	 });
+	});
 
+	router.post('/getDeviceList',(req, res) => {	
+		functions.getAllAvailableDevices()
+		.then((data) => {
+			res.status(data.status).json(data.list);
+		})
+		.catch((err) => {
+			res.status(err.status).json({message: err.message});
+		});
+
+	});
+	
+	router.post('/deviceNotification',(req, res) => {
+		functions.deviceNotification(req.body)
+		.then((notification_data) => {
+			res.status(notification_data.status).json({message: notification_data.message});
+		})
+		.catch((err) => {
+			res.status(err.status).json({message: err.message});
+		}); 		
+	});
+	
 	router.post('/test',(req, res) => {
 	   var id = {"_id":req.body._id};	
        functions.test(id);  		

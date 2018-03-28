@@ -1,3 +1,5 @@
+import { Session } from 'inspector';
+
 'use strict';
 
 const user = require('../models/user');
@@ -5,6 +7,7 @@ const device = require('../models/device');
 const config = require('../config/config');
 const sessionmanager = require('./session_manager');
 const transactionmanager = require('./transaction_manager');
+const notificationmanager = require('./notification_manager');
 const bcrypt = require('bcryptjs');
 const auth = require('basic-auth');
 const jwt = require('jsonwebtoken');
@@ -348,10 +351,51 @@ exports.resetPasswordByToken = (data) => {
 			}
 		});
 	});	
-}	
+}
+
+exports.getAllAvailableDevices = () => {
+	return new Promise((reject,resolve) => {
+		device.find({is_available:true},(err,data) => {
+			if(err) {
+				reject({status:404, message: err});
+			} else {
+				resolve({status:200, list: data});
+			}   
+		});
+	}); 
+}
+
+exports.deviceNotification = (data) => {
+	return new Promise((resolve,reject) => {
+		sessionmanager.getSessionData(data)
+		.then((session_data) => {
+			const notification_data = {
+				token: session_data.deviceToken,
+				message: data.message
+				//need to impliment with transection
+			};
+			notificationmanager.sendNotification(notification_data)
+			.then((resolved_data) => {
+				if(data.isAccepted) {
+					transactionmanager.addTransaction()
+					.then(() => {})
+					.catch(() => {});
+				} else {
+					resolve(resolved_data);
+				}
+			})
+			.catch((err) => {
+				reject(err);
+			});
+		})
+		.catch((err) => {
+			reject(err)
+		});
+	});    
+}
 
 exports.test = (user_id) => {
-  user.find(user_id,(err,data)=>{ 
+    user.find(user_id,(err,data)=>{ 
 		console.log(JSON.stringify(data));    
 	});
 }

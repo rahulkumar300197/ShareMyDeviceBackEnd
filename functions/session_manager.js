@@ -102,3 +102,15 @@ exports.removeSession = (data) => {
         .catch(() => reject({message:"Not Found", status: 404}));
     });
 }
+
+exports.getSessionData = (user_data) => {
+    return new Promise((resolve,reject) => {
+        session.find({userId:user_data.owner_id},(err,data) => {
+            if(err) {
+                reject(err);
+            } else {
+                resolve(data);
+            }
+        });
+    });
+};

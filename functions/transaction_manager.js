@@ -1,7 +1,7 @@
 'use strict';
 const transaction = require('../models/transaction');
 
-const addTransaction = (transaction_data) => {
+exports.addTransaction = (transaction_data) => {
 	return new Promise((resolve,reject) => {
         const newTransaction = new transaction({
             device_id : transaction_data.device_id,
