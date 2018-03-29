@@ -247,15 +247,27 @@ exports.emailPasswordLogin = (data) => {
 	  		reject({message:'Bad Request !!', status: 400});
 		  } 
     } else {
-			reject({message:'Bad Request !!', status: 400});
+		reject({message:'Bad Request !!', status: 400});
 	}
   });
 }	 
 
 exports.availableDevices = (token) => {
-	jwt.verify(token, config.secret, function (err, decoded){
-		if (err) {} else {}
-
+	return  new Promise((resolve,reject) => {
+		jwt.verify(token, config.secret, function (err, decoded){
+			if (err) {
+				reject({status:404, message: err});
+			} else {
+				device.find({is_available:true},(err,data) => {
+					if(err) {
+						reject({status:404, message: err});
+					} else {
+						resolve({status:200, list: data});
+					}   
+				});
+			}
+	
+		});
 	});
 }
 
@@ -351,18 +363,6 @@ exports.resetPasswordByToken = (data) => {
 			}
 		});
 	});	
-}
-
-exports.getAllAvailableDevices = () => {
-	return new Promise((reject,resolve) => {
-		device.find({is_available:true},(err,data) => {
-			if(err) {
-				reject({status:404, message: err});
-			} else {
-				resolve({status:200, list: data});
-			}   
-		});
-	}); 
 }
 
 exports.deviceNotification = (data) => {

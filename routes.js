@@ -137,8 +137,8 @@ module.exports = router => {
 		});  		
 	});
 
-	router.post('/getDeviceList',(req, res) => {	
-		functions.getAllAvailableDevices()
+	router.post('/getDeviceList',functions.checkAutorization,(req, res) => {	
+		functions.availableDevices(req.body.token)
 		.then((data) => {
 			res.status(data.status).json(data.list);
 		})
