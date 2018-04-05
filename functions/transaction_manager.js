@@ -6,7 +6,7 @@ exports.addTransaction = (transaction_data) => {
         const newTransaction = new transaction({
             device_id : transaction_data.device_id,
             owner_id : transaction_data.owner_id,
-            assignee_id : transaction_data.assignee_id            
+            assignee_id : transaction_data.assignee_id          
         });
       
         newTransaction.save()

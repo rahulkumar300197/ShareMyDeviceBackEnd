@@ -9,6 +9,8 @@ const userSchema = mongoose.Schema({
 	monile_no : String,
 	hashed_password	: String,
 	device_count : {type: Number, default: 0}, 
+	device_shared_count : {type: Number, default: 0},
+	device_request_count : {type: Number, default: 0},
 	forgot_password_token : {type: String},
 	created_at : String
 	

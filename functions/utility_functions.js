@@ -377,10 +377,39 @@ exports.deviceNotification = (data) => {
 			notificationmanager.sendNotification(notification_data)
 			.then((resolved_data) => {
 				if(data.isAccepted) {
-					transactionmanager.addTransaction()
-					.then(() => {})
-					.catch(() => {});
-				} else {
+					var transection_data = {
+						device_id : notification_data.device_id,
+						owner_id : notification_data.owner_id,
+						assignee_id : notification_data.assignee_id
+					};
+					transactionmanager.addTransaction(transection_data)
+					.then(() => {
+						user.findByIdAndUpdate(notification_data.owner_id, {$inc: {device_shared_count:1}},(err, updated_data) => {
+							if (err) {
+								reject({status:401, message: err});
+							} else {
+								//resolve({status:200, message:"Password Sucessfully Changed"});
+							}
+						});
+						device.findByIdAndUpdate(notification_data.device_id, {$inc: {shared_count:1}},(err, updated_data) => {
+							if (err) {
+								reject({status:401, message: err});
+							} else {
+								//resolve({status:200, message:"Password Sucessfully Changed"});
+							}
+						});
+					})
+					.catch(() => {
+
+					});
+				} else if(data.isRequested){
+					user.findByIdAndUpdate(notification_data.assignee_id, {$inc: {device_request_count:1}},(err, updated_data) => {
+						if (err) {
+							reject({status:401, message: err});
+						} else {
+							//resolve({status:200, message:"Password Sucessfully Changed"});
+						}
+					});
 					resolve(resolved_data);
 				}
 			})

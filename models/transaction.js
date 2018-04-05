@@ -18,6 +18,10 @@ const transactionSchema = mongoose.Schema({
         type: mongoose.Schema.ObjectId,
         ref: 'user',
         default: null,
+    },
+    transaction_date : {
+        type: Date,
+        default : Date.now()
     }
     
 });
