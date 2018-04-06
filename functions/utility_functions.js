@@ -388,26 +388,26 @@ exports.deviceNotification = (data) => {
 							if (err) {
 								reject({status:401, message: err});
 							} else {
-								//resolve({status:200, message:"Password Sucessfully Changed"});
+								resolve({status:200, message:"Sucess"});
 							}
 						});
 						device.findByIdAndUpdate(notification_data.device_id, {$inc: {shared_count:1}},(err, updated_data) => {
 							if (err) {
 								reject({status:401, message: err});
 							} else {
-								//resolve({status:200, message:"Password Sucessfully Changed"});
+								resolve({status:200, message:"Sucess"});
 							}
 						});
 					})
-					.catch(() => {
-
+					.catch((err) => {
+						reject({status: 444, message:"Something went wrong"});
 					});
 				} else if(data.isRequested){
 					user.findByIdAndUpdate(notification_data.assignee_id, {$inc: {device_request_count:1}},(err, updated_data) => {
 						if (err) {
 							reject({status:401, message: err});
 						} else {
-							//resolve({status:200, message:"Password Sucessfully Changed"});
+							resolve({status:200, message:"Sucess"});
 						}
 					});
 					resolve(resolved_data);
