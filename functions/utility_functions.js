@@ -13,20 +13,20 @@ const auth = require('basic-auth');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 
-const hashPasswordUsingBcrypt = function (plainTextPassword) {
+const hashPasswordUsingBcrypt = (plainTextPassword) => {
 	const saltRounds = 10;
 	return bcrypt.hashSync(plainTextPassword, saltRounds);
 };
 
-const comparePasswordUsingBcrypt = function (plainTextPassword, passwordhash) {
+const comparePasswordUsingBcrypt = (plainTextPassword, passwordhash) => {
 	return bcrypt.compareSync(plainTextPassword, passwordhash);
 };
 
-const verifyAccessToken = function (token) {
+const verifyAccessToken = (token) => {
 
 	//console.log("token -------------------------> "+token);
   if (token) {
-    jwt.verify(token,config.secret, function(err, decoded) {      
+    jwt.verify(token,config.secret, (err, decoded) => {      
       if (err) {
         return false; 
       } else {
@@ -38,7 +38,7 @@ const verifyAccessToken = function (token) {
   }
 }; 
 
-const userData = function (user_id) {
+const userData = (user_id) => {
 	return new Promise((resolve,reject) => {
 		if (user_id) {
 			user.findById(user_id,(err,data) => {
@@ -53,7 +53,7 @@ const userData = function (user_id) {
   
 } 
 
-const deviceData = function (user_id) {
+const deviceData = (user_id) => {
 	return new Promise((resolve,reject) => {
 		if (user_id !== undefined) {
 			device.find({owner_id:user_id},(err,data) => {
@@ -126,7 +126,7 @@ exports.registerDevice =  (data) => {
 			if (session_data) {
 				newDevice.save()
 	            .then((device_data) => {
-		  	      user.findByIdAndUpdate(verify._id, {$inc: {device_count:1}}, function (err, data) {
+		  	      user.findByIdAndUpdate(verify._id, {$inc: {device_count:1}}, (err, data) => {
 				    resolve({ status: 201, message: 'Device Registered Sucessfully !', device_data});
 			      });
 		        })
@@ -254,7 +254,7 @@ exports.emailPasswordLogin = (data) => {
 
 exports.availableDevices = (token) => {
 	return  new Promise((resolve,reject) => {
-		jwt.verify(token, config.secret, function (err, decoded){
+		jwt.verify(token, config.secret, (err, decoded) => {
 			if (err) {
 				reject({status:404, message: err});
 			} else {
@@ -304,7 +304,7 @@ exports.forgotPassword = (data) => {
 			} else {
 				const resetPasswordToken = jwt.sign({email:user_data.email}, config.secret, { expiresIn: 300 } );
 				console.log(resetPasswordToken,"token");
-				user.findByIdAndUpdate(user_data._id, {forgot_password_token:resetPasswordToken}, function (err, data) {
+				user.findByIdAndUpdate(user_data._id, {forgot_password_token:resetPasswordToken}, (err, data) => {
 				    if (err) {
 
 					} else {
