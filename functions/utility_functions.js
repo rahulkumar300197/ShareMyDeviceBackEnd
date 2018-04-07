@@ -1,5 +1,3 @@
-import { Session } from 'inspector';
-
 'use strict';
 
 const user = require('../models/user');
