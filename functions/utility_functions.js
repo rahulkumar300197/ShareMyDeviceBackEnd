@@ -210,7 +210,7 @@ exports.emailPasswordLogin = (data) => {
     if (data) {
       if (data.email !== undefined) {
 		  	user.findOne({email:data.email},(err,user_data) => {
-					console.log(user_data);
+					//console.log(user_data);
 					if (err) reject({message: err, status:404});
 					if (user_data == null){
 						reject({message: 'Not Found !!',status:404});
@@ -223,8 +223,9 @@ exports.emailPasswordLogin = (data) => {
 								deviceData(user_data._id)
 								.then((device) => {
 									user_data.hashed_password = undefined;
-									user_data._id= undefined;
+									user_data.$_id= undefined;
 									user_data.forgot_password_token=undefined;
+									user_data.__v=undefined;
                   resolve({ data: {access_token: token, user_data: user_data, device_data: device},status:200});
 								})
 								.catch((err) => {
@@ -250,19 +251,16 @@ exports.emailPasswordLogin = (data) => {
   });
 }	 
 
-exports.availableDevices = (token) => {
+exports.getDevices = (token) => {
 	return  new Promise((resolve,reject) => {
 		jwt.verify(token, config.secret, (err, decoded) => {
 			if (err) {
 				reject({status:404, message: err});
 			} else {
-				device.find({is_available:true},(err,data) => {
-					if(err) {
-						reject({status:404, message: err});
-					} else {
-						resolve({status:200, list: data});
-					}   
-				});
+				device.find({}).populate("owner_id",["device_shared_count","device_request_count","_id","name","email"])
+				.populate("assignee_id",["device_shared_count","device_request_count","_id","name","email"])
+				.then((data) => {resolve({status:200, list: data});})
+				.catch((err) => {reject({status:404, message: err});})
 			}
 	
 		});
