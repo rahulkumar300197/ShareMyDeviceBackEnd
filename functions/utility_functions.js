@@ -261,7 +261,7 @@ exports.getDevices = (data) => {
 			if (err) {
 				reject({status:404, message: err});
 			} else {
-				device.find({deviceCategory:data.deviceCategory}).populate("owner_id",["device_shared_count","device_request_count","_id","name","email"])
+				device.find({}).populate("owner_id",["device_shared_count","device_request_count","_id","name","email"])
 				.populate("assignee_id",["device_shared_count","device_request_count","_id","name","email"])
 				.then((data) => {resolve({status:200, list: data});})
 				.catch((err) => {reject({status:404, message: err});})

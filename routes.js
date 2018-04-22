@@ -130,7 +130,7 @@ module.exports = router => {
 	});
 
 	router.post('/getDeviceList',functions.checkAutorization,(req, res) => {	
-		functions.getDevices(req.body)
+		functions.getDevices(req.body.token)
 		.then((data) => {
 			res.status(data.status).json(data.list);
 		})
