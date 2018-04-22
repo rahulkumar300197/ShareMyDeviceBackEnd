@@ -112,11 +112,15 @@ exports.registerDevice =  (data) => {
 	  
       if (verify._id) {
 		const newDevice = new device({
-	  	  name: data.name,
+		  brand:data.brand,
+		  model:data.model,
 		  os:data.os,
 		  version:data.version,
+		  screen_size:data.screen_size,
+		  resolution: data.resolution,
 		  imei:data.imei,
 		  sticker_no : data.sticker_no,
+		  deviceCategory: data.deviceCategory,
 		  owner_id : verify._id
 		});
 		sessionmanager.verifySession(data)
@@ -132,18 +136,18 @@ exports.registerDevice =  (data) => {
     	        .catch(err => {
     		      if (err.code == 11000) {		
     			    reject({ status: 409, message: 'Device Already Registered !' });
-    		      } else {
-	    		    reject({ status: 500, message: 'Internal Server Error !' });
+    		      } else { 
+	    		    reject({ status: 500, message: 'Invalid Data !!' });
 	      	      }		
 	            });
 			} else {
-				reject(false);
+				reject(reject({message:'Unauthorized Access', status:401}));
 			}
 		})
 		.catch(() => {});	
 		 
       } else {
-	  	  reject(false);
+	  	  reject(reject({message:'Unauthorized Access', status:401}));
   	  }
 		
 	});	 	  
@@ -251,13 +255,13 @@ exports.emailPasswordLogin = (data) => {
   });
 }	 
 
-exports.getDevices = (token) => {
+exports.getDevices = (data) => {
 	return  new Promise((resolve,reject) => {
-		jwt.verify(token, config.secret, (err, decoded) => {
+		jwt.verify(data.token, config.secret, (err, decoded) => {
 			if (err) {
 				reject({status:404, message: err});
 			} else {
-				device.find({}).populate("owner_id",["device_shared_count","device_request_count","_id","name","email"])
+				device.find({deviceCategory:data.deviceCategory}).populate("owner_id",["device_shared_count","device_request_count","_id","name","email"])
 				.populate("assignee_id",["device_shared_count","device_request_count","_id","name","email"])
 				.then((data) => {resolve({status:200, list: data});})
 				.catch((err) => {reject({status:404, message: err});})
