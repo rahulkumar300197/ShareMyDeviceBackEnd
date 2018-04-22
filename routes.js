@@ -37,21 +37,13 @@ module.exports = router => {
 		ip = ip.split(':')[3];
 		req.body.ip=ip;
 		const token = req.body.token;
-		var data = req.body;
-		//console.log(JSON.stringify(data));
-		if (data.name || data.os || data.version || data.imei 
-		|| data.sticker_no || data.name.trim() || data.os.trim()
-		 || data.version.trim() || data.imei.trim() || data.sticker_no.trim()) {
-
-		  functions.registerDevice(req.body)
-          .then(result => {
-			res.status(result.status).json({message:result.message, device_data: result.device_data});
-		  })
-          .catch(err => res.status(401).json({message:"Invalid Data !!"}));
-		} else {
-			res.status(401).json({message:"Invalid Data !!"});
-		}
-
+		var data = req.body;		
+	    functions.registerDevice(req.body)
+        .then(result => {
+		  res.status(result.status).json({message:result.message, device_data: result.device_data});
+		})
+        .catch(err => res.status(err.status).json({message:err.message}));
+	
 	});
 
 	router.post('/login', (req, res) => {
@@ -138,7 +130,7 @@ module.exports = router => {
 	});
 
 	router.post('/getDeviceList',functions.checkAutorization,(req, res) => {	
-		functions.getDevices(req.body.token)
+		functions.getDevices(req.body)
 		.then((data) => {
 			res.status(data.status).json(data.list);
 		})
