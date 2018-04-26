@@ -16,7 +16,7 @@ exports.addTransaction = (transaction_data) => {
         })
       
         .catch(err => {
-          if (err.code == 11000) {		
+          if (err.code === 11000) {
             resolve({ status: 409, message: err.message });
           } else {
             resolve({ status: 500, message: 'Internal Server Error !' });

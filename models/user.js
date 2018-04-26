@@ -1,12 +1,11 @@
 'use strict';
 const config = require('../config/config');
 const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
 
 const userSchema = mongoose.Schema({ 
     name : String,
 	email : {type: String, unique: true}, 
-	monile_no : String,
+	mobile_no : String,
 	hashed_password	: String,
 	device_count : {type: Number, default: 0}, 
 	device_shared_count : {type: Number, default: 0},

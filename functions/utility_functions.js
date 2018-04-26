@@ -7,7 +7,6 @@ const sessionmanager = require('./session_manager');
 const transactionmanager = require('./transaction_manager');
 const notificationmanager = require('./notification_manager');
 const bcrypt = require('bcryptjs');
-const auth = require('basic-auth');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 
@@ -19,22 +18,6 @@ const hashPasswordUsingBcrypt = (plainTextPassword) => {
 const comparePasswordUsingBcrypt = (plainTextPassword, passwordhash) => {
 	return bcrypt.compareSync(plainTextPassword, passwordhash);
 };
-
-const verifyAccessToken = (token) => {
-
-	//console.log("token -------------------------> "+token);
-  if (token) {
-    jwt.verify(token,config.secret, (err, decoded) => {      
-      if (err) {
-        return false; 
-      } else {
-        return decoded;
-      }
-    });
-  } else {
-	return false;
-  }
-}; 
 
 const userData = (user_id) => {
 	return new Promise((resolve,reject) => {
@@ -90,7 +73,7 @@ exports.registerUser = (data) => {
 
 		.catch(err => {
 
-			if (err.code == 11000) {
+			if (err.code === 11000) {
 						
 				reject({ status: 409, message: err.message });
 
@@ -134,7 +117,7 @@ exports.registerDevice =  (data) => {
 		        })
 	
     	        .catch(err => {
-    		      if (err.code == 11000) {		
+    		      if (err.code === 11000) {
     			    reject({ status: 409, message: 'Device Already Registered !' });
     		      } else { 
 	    		    reject({ status: 500, message: 'Invalid Data !!' });
@@ -157,14 +140,13 @@ exports.registerDevice =  (data) => {
 exports.checkAutorization = (req,res,next) => {
 	 const bearerHeader = req.headers['authorization'];
 	 //console.log(bearerHeader);
-	 if (typeof bearerHeader !== undefined) {
-		 const bearer = bearerHeader.split(" ");
-		 const bearerToken = bearer[1];
-		 req.body.token =  bearerToken;
-         next();
-	 } else {
-		 res.sendStatus(403);
-	 }
+    if (typeof bearerHeader === undefined) {
+        res.sendStatus(403);
+    } else {
+        const bearer = bearerHeader.split(" ");
+        req.body.token = bearer[1];
+        next();
+    }
 } 
 	
 exports.accessTokenLogin = (login_data) => {
@@ -192,11 +174,11 @@ exports.accessTokenLogin = (login_data) => {
 						});
 			    })
 			    .catch((err)=>{
-					//console.log("ssss");  
+					//console.log("ssss");
 				    reject({message: 'Incorrect Email or Password', status: 401});
 		    	});
 				} else {
-				  //console.log("A");	
+				  //console.log("A");
 				  reject({message:'Unauthorized Access', status:401});
 				}
 			})
@@ -230,12 +212,12 @@ exports.emailPasswordLogin = (data) => {
 									user_data.$_id= undefined;
 									user_data.forgot_password_token=undefined;
 									user_data.__v=undefined;
-                  resolve({ data: {access_token: token, user_data: user_data, device_data: device},status:200});
+									resolve({ data: {access_token: token, user_data: user_data, device_data: device},status:200});
 								})
 								.catch((err) => {
 									user_data.hashed_password = undefined;
 									user_data._id = undefined;
-                  resolve({ data: {access_token: token, user_data: user_data, device_data: err},status:200});
+									resolve({ data: {access_token: token, user_data: user_data, device_data: err},status:200});
 								});						
 									 
 							})
@@ -253,11 +235,11 @@ exports.emailPasswordLogin = (data) => {
 		reject({message:'Bad Request !!', status: 400});
 	}
   });
-}	 
+}
 
-exports.getDevices = (data) => {
+exports.getDevices = (token) => {
 	return  new Promise((resolve,reject) => {
-		jwt.verify(data.token, config.secret, (err, decoded) => {
+		jwt.verify(token, config.secret, (err, decoded) => {
 			if (err) {
 				reject({status:404, message: err});
 			} else {
@@ -356,7 +338,7 @@ exports.resetPasswordByToken = (data) => {
 						if (err) {
 							reject({status:401, message: err});
 						} else {
-							resolve({status:200, message:"Password Sucessfully Changed"});
+							resolve({status:200, message:"Password Successfully Changed"});
 						}
 					});
 				});
