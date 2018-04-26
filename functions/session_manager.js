@@ -13,7 +13,8 @@ const sessionData = (user_id) => {
 			reject({message:"Not Found"});
 		}
 	});
-} 
+}
+
 const deleteSession = (user_id) => {
 	return new Promise((resolve,reject) => {
 		if (user_id) {
@@ -26,7 +27,7 @@ const deleteSession = (user_id) => {
 			resolve({message:"Not Found"});
 		}
 	});
-} 
+}
 
 const newSession = (user_data) => {
     return new Promise((resolve,reject) => {
@@ -40,11 +41,11 @@ const newSession = (user_data) => {
         newSession.save()
         
         .then((session_data) => {
-           resolve({ status: 201, _id: user_data._id});
+           resolve({ status: 201, _id: session_data.userId});
         })
       
         .catch(err => {
-          if (err.code == 11000) {		
+          if (err.code === 11000) {
             resolve({ status: 409, message: err.message });
           } else {
             resolve({ status: 500, message: 'Internal Server Error !' });
@@ -54,7 +55,7 @@ const newSession = (user_data) => {
 }
 
 exports.setSession = (data) => {
-    return new Promise((resolve,rejecte) => {
+    return new Promise((resolve,reject) => {
         sessionData(data._id+"")
         .then((session_data) => {
           if(session_data ==null) {
@@ -83,7 +84,7 @@ exports.verifySession = (session_data) => {
     return new Promise((resolve,reject) => {
         sessionData(session_data._id)
         .then((data) => {
-            if (session_data.deviceType == data.deviceType && session_data.deviceToken == data.deviceToken) {
+            if (session_data.deviceType === data.deviceType && session_data.deviceToken === data.deviceToken) {
                 resolve(true);
             } else {
                 resolve(false);
@@ -98,7 +99,7 @@ exports.verifySession = (session_data) => {
 exports.removeSession = (data) => {
     return new Promise((resolve,reject) => {
         deleteSession(data)
-        .then(() => resolve({message:"Sucessfully Logout", status: 200}))
+        .then(() => resolve({message:"Successfully Logout", status: 200}))
         .catch(() => reject({message:"Not Found", status: 404}));
     });
 }
