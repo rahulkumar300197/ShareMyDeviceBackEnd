@@ -3,6 +3,7 @@
 const user = require('../models/user');
 const device = require('../models/device');
 const config = require('../config/config');
+const constant = require('../constants/constant');
 const sessionmanager = require('./session_manager');
 const transactionmanager = require('./transaction_manager');
 const notificationmanager = require('./notification_manager');
@@ -352,7 +353,7 @@ exports.deviceNotification = (data) => {
 		sessionmanager.getSessionData(data)
 		.then((session_data) => {
 			const notification_data = {
-				token: session_data.deviceToken,
+                deviceToken: session_data.deviceToken,
 				message: data.message
 				//need to impliment with transection
 			};
@@ -403,6 +404,36 @@ exports.deviceNotification = (data) => {
 			reject(err)
 		});
 	});    
+}
+
+exports.updateStatusRequest = () => {
+	return new Promise((resolve, reject) => {
+
+        let criteria = {
+            deviceToken: constant.android
+        };
+
+        let options = {
+            userId: 1,
+			deviceToken: 1
+        };
+
+        sessionmanager.getAllActiveSessions(criteria,options)
+			.then((activeUsers) => {
+				activeUsers.forEach((activeUser) => {
+					activeUser.message = constant.updateStatusMessage;
+					notificationmanager.sendNotification(activeUser);
+				})
+					.then(() => {resolve(constant.success)})
+					.catch(() => {reject(constant.failed)});
+			})
+			.catch((err) => {reject(err)});
+
+	});
+
+}
+
+exports.updateStatus = () => {
 }
 
 exports.test = (user_id) => {
