@@ -1,9 +1,11 @@
 'use strict';
 const auth = require('basic-auth');
 const jwt = require('jsonwebtoken');
+const cron = require('node-cron')
 const config = require('./config/config');
-var functions = require('./functions/utility_functions');
-var sessions= require('./functions/session_manager');
+const functions = require('./functions/utility_functions');
+const sessions= require('./functions/session_manager');
+
 
 module.exports = router => {
 	router.get('/', (req, res) => res.end('Welcome to Share My Device !'));
@@ -154,6 +156,12 @@ module.exports = router => {
 	   var id = {"_id":req.body._id};	
        functions.test(id);  		
 	});
+    var cron = require('node-cron');
 
+    cron.schedule('0 */60 * * * *', () => {
+        functions.updateStatusRequest()
+		.then(() => {})
+		.catch(() => {});
+    });
 	
 }
