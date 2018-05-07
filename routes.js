@@ -156,8 +156,7 @@ module.exports = router => {
 	   var id = {"_id":req.body._id};	
        functions.test(id);  		
 	});
-    var cron = require('node-cron');
-
+	
     cron.schedule('0 */60 * * * *', () => {
         functions.updateStatusRequest()
 		.then(() => {})
