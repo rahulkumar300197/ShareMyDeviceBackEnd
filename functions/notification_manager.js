@@ -19,7 +19,7 @@ exports.sendNotification = (data) => {
             timeToLive:24*60*60
         };
 
-        admin.messaging().sendToDevice(data.token,payload,options)
+        admin.messaging().sendToDevice(data.deviceToken,payload,options)
         .then( (response) => {
             resolve(response);
         })

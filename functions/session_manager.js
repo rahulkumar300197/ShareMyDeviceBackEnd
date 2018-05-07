@@ -115,3 +115,15 @@ exports.getSessionData = (user_data) => {
         });
     });
 };
+
+exports.getAllActiveSessions = (criteria,options) => {
+    return new Promise((resolve,reject) => {
+        session.find(criteria,options,(err,data) => {
+            if(err) {
+                reject(err);
+            } else {
+                resolve(data);
+            }
+        });
+    });
+};
