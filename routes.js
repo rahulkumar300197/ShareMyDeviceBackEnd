@@ -1,7 +1,7 @@
 'use strict';
 const auth = require('basic-auth');
 const jwt = require('jsonwebtoken');
-const cron = require('node-cron')
+const CronJob = require('cron').CronJob;
 const config = require('./config/config');
 const functions = require('./functions/utility_functions');
 const sessions= require('./functions/session_manager');
@@ -157,10 +157,15 @@ module.exports = router => {
        functions.test(id);  		
 	});
 	
-    cron.schedule('0 */60 * * * *', () => {
-        functions.updateStatusRequest()
-		.then(() => {})
-		.catch(() => {});
-    });
+	var job = new CronJob('0 */60 * * * *', () => {
+	   		console.log(">>------------------------Push send ------------------------->>>>>");
+       		functions.updateStatusRequest()
+	   		.then(() => {})
+	   		.catch(() => {});
+	    },
+	    undefined,
+	    true, 
+	    'Asia/Kolkata'
+	);
 	
 }

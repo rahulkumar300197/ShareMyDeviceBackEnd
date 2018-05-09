@@ -410,7 +410,7 @@ exports.updateStatusRequest = () => {
 	return new Promise((resolve, reject) => {
 
         let criteria = {
-            deviceToken: constant.android
+            deviceType: constant.android
         };
 
         let options = {
@@ -418,7 +418,7 @@ exports.updateStatusRequest = () => {
 			deviceToken: 1
         };
 
-        sessionmanager.getAllActiveSessions(criteria,options)
+		sessionmanager.getAllActiveSessions(criteria,options)
 			.then((activeUsers) => {
 				activeUsers.forEach((activeUser) => {
 					activeUser.message = constant.updateStatusMessage;
