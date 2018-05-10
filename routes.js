@@ -152,13 +152,21 @@ module.exports = router => {
 		}); 		
 	});
 	
+	router.post('/updatedevicestatus',functions.checkAutorization,(req, res) => {
+		functions.updatedeviceStatus(req.body).then((data) => {
+			res.status(data.status).json({message: data.message});
+		}).catch((err) => {
+			res.status(err.status).json({message: err.message});
+		});
+	});
+
 	router.post('/test',(req, res) => {
 	   var id = {"_id":req.body._id};	
        functions.test(id);  		
 	});
 	
 	var job = new CronJob('0 */60 * * * *', () => {
-	   		console.log(">>------------------------Push send ------------------------->>>>>");
+	   		console.log(">>------------------------Push send------------------------->>>>>");
        		functions.updateStatusRequest()
 	   		.then(() => {})
 	   		.catch(() => {});
