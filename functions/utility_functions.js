@@ -433,7 +433,25 @@ exports.updateStatusRequest = () => {
 
 }
 
-exports.updateStatus = () => {
+exports.updatedeviceStatus = (data) => {
+	return new Promise((resolve,reject) => {
+		jwt.verify(data.token, config.secret,(err, decoded) => {
+			if (err) {
+				reject({status: 401, message:err});
+			} else {
+				let updateObj = {
+					is_available:data.is_available
+				};
+				device.findByIdAndUpdate(data._id, updateObj, {new: true}, (err, model) => {
+					if (err) {
+						reject({status: 401, message:err});
+					} else {
+						resolve({status: 200, message:constant.success});
+					}
+				});
+			}
+		});	
+	});
 }
 
 exports.test = (user_id) => {
