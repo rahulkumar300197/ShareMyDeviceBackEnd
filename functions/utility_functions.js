@@ -245,7 +245,7 @@ exports.getDevices = (token) => {
 				reject({status:404, message: err});
 			} else {
 				device.find({}).populate("owner_id",["device_shared_count","device_request_count","_id","name","email"])
-				.populate("assignee_id",["device_shared_count","device_request_count","_id","name","email"])
+				.populate("assignee_id",["device_shared_count","device_request_count","_id","name","email"]).sort({is_available: -1})
 				.then((data) => {resolve({status:200, list: data});})
 				.catch((err) => {reject({status:404, message: err});})
 			}
