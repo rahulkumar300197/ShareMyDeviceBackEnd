@@ -138,6 +138,40 @@ exports.registerDevice =  (data) => {
 	  
 }
 
+exports.updatedevice = (data) => {
+	
+	return new Promise((resolve,reject) => {
+		const verify = jwt.verify(data.token,config.secret);
+		if (verify._id) {
+            let sesssionModel = {
+				_id: verify._id ,
+				deviceToken: data.deviceToken ,
+				deviceType: data.deviceType 
+			}
+			sessionmanager.verifySession(sesssionModel)
+ 		    .then((session_data) => {
+			    if (session_data) {
+			  	    device.findByIdAndUpdate(verify._id, data, {new: true}, (err, model) => {
+						if (err) {
+							reject({status: 401, message:err});
+						} else {
+							resolve({status: 200, message:constant.success, data:model});
+						}
+					});
+			  	} else {
+					reject(reject({message:'Unauthorized Access', status:401}));
+			  	}
+		  	})
+		  	.catch(() => {});	
+		   
+		} else {
+			reject(reject({message:'Unauthorized Access', status:401}));
+		}
+		  
+	});	 	  
+
+}
+
 exports.checkAutorization = (req,res,next) => {
 	 const bearerHeader = req.headers['authorization'];
 	 //console.log(bearerHeader);
