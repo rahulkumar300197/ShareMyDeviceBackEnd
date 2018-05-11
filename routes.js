@@ -160,6 +160,14 @@ module.exports = router => {
 		});
 	});
 
+	router.post('/updatedevices',functions.checkAutorization,(req, res) => {
+		functions.updatedevice(req.body).then((data) => {
+			res.status(data.status).json(data);
+		}).catch((err) => {
+			res.status(err.status).json({message: err.message});
+		});
+	});
+
 	router.post('/test',(req, res) => {
 	   var id = {"_id":req.body._id};	
        functions.test(id);  		
