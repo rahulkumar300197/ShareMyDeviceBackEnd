@@ -389,10 +389,14 @@ exports.deviceNotification = (data) => {
 		.then((session_data) => {
 			console.log(JSON.stringify(session_data),"-----------SESSION_DATA-----------");
 			const notification_data = {
-                deviceToken: session_data.deviceToken,
+				assignee_id:data.assignee_id,
+				device_id:data.device_id,
+				owner_id:session_data._id,
+                deviceToken: session_data[0].deviceToken,
 				message: data.message
 				//need to impliment with transection
 			};
+			console.log("");
 			notificationmanager.sendNotification(notification_data)
 			.then((resolved_data) => {
 				console.log(JSON.stringify(resolved_data),"-----------NOTIFICATION_RESPONSE-----------");
