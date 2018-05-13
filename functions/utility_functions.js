@@ -145,13 +145,13 @@ exports.updatedevice = (data) => {
 		if (verify._id) {
             let sesssionModel = {
 				_id: verify._id ,
-				deviceToken: data.deviceToken ,
-				deviceType: data.deviceType 
+				deviceToken: data.user.deviceToken ,
+				deviceType: data.user.deviceType 
 			}
 			sessionmanager.verifySession(sesssionModel)
  		    .then((session_data) => {
 			    if (session_data) {
-			  	    device.findByIdAndUpdate(verify._id, data, {new: true}, (err, model) => {
+			  	    device.findByIdAndUpdate(data.deviceData._id, data.deviceData, {new: true}, (err, model) => {
 						if (err) {
 							reject({status: 401, message:err});
 						} else {
@@ -384,8 +384,10 @@ exports.resetPasswordByToken = (data) => {
 
 exports.deviceNotification = (data) => {
 	return new Promise((resolve,reject) => {
+		console.log(JSON.stringify(data),"-----------REQUEST_DATA-----------");
 		sessionmanager.getSessionData(data)
 		.then((session_data) => {
+			console.log(JSON.stringify(session_data),"-----------SESSION_DATA-----------");
 			const notification_data = {
                 deviceToken: session_data.deviceToken,
 				message: data.message
@@ -393,6 +395,7 @@ exports.deviceNotification = (data) => {
 			};
 			notificationmanager.sendNotification(notification_data)
 			.then((resolved_data) => {
+				console.log(JSON.stringify(resolved_data),"-----------NOTIFICATION_RESPONSE-----------");
 				if(data.isAccepted) {
 					var transection_data = {
 						device_id : notification_data.device_id,
