@@ -407,7 +407,7 @@ exports.deviceNotification = (data) => {
 						assignee_id : notification_data.assignee_id
 					};
 					transactionmanager.addTransaction(transection_data)
-					.then(() => {
+					.then((transection_responce_data) => {
 						user.findByIdAndUpdate(notification_data.owner_id, {$inc: {device_shared_count:1}},(err, updated_data) => {
 							if (err) {
 								reject({status:401, message: err});
