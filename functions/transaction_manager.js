@@ -12,12 +12,14 @@ exports.addTransaction = (transaction_data) => {
         newTransaction.save()
         
         .then((data) => {
-           resolve({ status: 201 ,transaction_id: data._id });
+          console.log(JSON.stringify(data),"-----------TRANSECTION DATA------------");
+          resolve({ status: 201 ,transaction_id: data._id });
         })
       
         .catch(err => {
+          console.log(JSON.stringify(err),"-----------TRANSECTION ERR------------");
           if (err.code === 11000) {
-            resolve({ status: 409, message: err.message });
+            resolve({ status: 404, message: err.message });
           } else {
             resolve({ status: 500, message: 'Internal Server Error !' });
           }
