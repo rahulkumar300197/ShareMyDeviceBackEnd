@@ -21,9 +21,11 @@ exports.sendNotification = (data) => {
 
         admin.messaging().sendToDevice(data.deviceToken,payload,options)
         .then( (response) => {
+            console.log(JSON.stringify(response),"-----------NOTIFICATION_RESPONSE--------------");
             resolve(response);
         })
         .catch( (err) => {
+            console.log(JSON.stringify(response),"-----------NOTIFICATION_ERR--------------");
             reject(err);
         })
 
