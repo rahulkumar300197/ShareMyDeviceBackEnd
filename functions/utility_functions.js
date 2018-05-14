@@ -434,7 +434,6 @@ exports.deviceNotification = (data) => {
 							resolve({status:200, message:"Sucess"});
 						}
 					});
-					resolve(resolved_data);
 				}
 			})
 			.catch((err) => {
