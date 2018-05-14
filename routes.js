@@ -173,7 +173,7 @@ module.exports = router => {
        functions.test(id);  		
 	});
 	
-	var job = new CronJob('0 */60 * * * *', () => {
+	var job = new CronJob('0 */60 9-19 * * 1-5', () => {
 	   		console.log(">>------------------------Push send------------------------->>>>>");
        		functions.updateStatusRequest()
 	   		.then(() => {})
