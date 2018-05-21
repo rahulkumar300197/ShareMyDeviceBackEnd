@@ -90,50 +90,34 @@ exports.registerDevice =  (data) => {
 
 	
 	return new Promise((resolve,reject) => {
-	  const verify = jwt.verify(data.token,config.secret);
-	  //console.log(JSON.stringify(verify));
-	  data._id = verify._id;
-	  
-      if (verify._id) {
-		const newDevice = new device({
-		  brand:data.brand,
-		  model:data.model,
-		  os:data.os,
-		  version:data.version,
-		  screen_size:data.screen_size,
-		  resolution: data.resolution,
-		  imei:data.imei,
-		  sticker_no : data.sticker_no,
-		  deviceCategory: data.deviceCategory,
-		  owner_id : verify._id
-		});
-		sessionmanager.verifySession(data)
-		.then((session_data) => {
-			if (session_data) {
-				newDevice.save()
-	            .then((device_data) => {
-		  	      user.findByIdAndUpdate(verify._id, {$inc: {device_count:1}}, (err, data) => {
-				    resolve({ status: 201, message: 'Device Registered Sucessfully !', device_data});
-			      });
-		        })
 	
-    	        .catch(err => {
-    		      if (err.code === 11000) {
-    			    reject({ status: 409, message: 'Device Already Registered !' });
-    		      } else { 
-	    		    reject({ status: 500, message: 'Invalid Data !!' });
-	      	      }		
-	            });
-			} else {
-				reject(reject({message:'Unauthorized Access', status:401}));
-			}
+      const newDevice = new device({
+		brand:data.brand,
+		model:data.model,
+		os:data.os,
+		version:data.version,
+		screen_size:data.screen_size,
+		resolution: data.resolution,
+		imei:data.imei,
+		sticker_no : data.sticker_no,
+		deviceCategory: data.deviceCategory,
+		owner_id : data._id
+	  });
+	  newDevice.save()
+		then((device_data) => {
+			user.findByIdAndUpdate(data._id, {$inc: {device_count:1}}, (err, data) => {
+				resolve({ status: 201, message: 'Device Registered Sucessfully !', device_data});
+			});
 		})
-		.catch(() => {});	
-		 
-      } else {
-	  	  reject(reject({message:'Unauthorized Access', status:401}));
-  	  }
-		
+  
+		.catch(err => {
+			if (err.code === 11000) {
+				reject({ status: 409, message: 'Device Already Registered !' });
+			} else { 
+				reject({ status: 500, message: 'Invalid Data !!' });
+			}		
+		});
+	
 	});	 	  
 	  
 }
@@ -171,58 +155,27 @@ exports.updatedevice = (data) => {
 	});	 	  
 
 }
-
-exports.checkAutorization = (req,res,next) => {
-	 const bearerHeader = req.headers['authorization'];
-	 //console.log(bearerHeader);
-    if (typeof bearerHeader === undefined) {
-        res.sendStatus(403);
-    } else {
-        const bearer = bearerHeader.split(" ");
-        req.body.token = bearer[1];
-        next();
-    }
-} 
 	
 exports.accessTokenLogin = (login_data) => {
 	return new Promise((resolve,reject) => {
-		const verify = jwt.verify(login_data.token,config.secret);
-       
-	  //console.log(JSON.stringify(verify));
-        if (verify._id) {
-			login_data._id=verify._id;
-			sessionmanager.verifySession(login_data)
-			.then((session_data) => {
-				if (session_data) {
-				  userData(verify._id)
-			    .then((data) =>{
-						deviceData(verify._id)
-						.then((device) => {
-							data.hashed_password = undefined;
-							data._id = undefined;
-							resolve({ data: {user_data: data, device_data: device},status:200});
-						})
-						.catch((err) => {
-							user_data.hashed_password = undefined;
-							user_data._id = undefined;
-							resolve({ data: {user_data: data, device_data: err},status:200});
-						});
-			    })
-			    .catch((err)=>{
-					//console.log("ssss");
-				    reject({message: 'Incorrect Email or Password', status: 401});
-		    	});
-				} else {
-				  //console.log("A");
-				  reject({message:'Unauthorized Access', status:401});
-				}
-			})
-			.catch(() => {});
-			
-      } else {
-		 // console.log("B");	
-	  	  reject({message: 'Invalid Access Token', status: 404});
-     	}
+		userData(login_data._id)
+		.then((data) =>{
+				deviceData(login_data._id)
+				.then((device) => {
+					data.hashed_password = undefined;
+					data._id = undefined;
+					resolve({ data: {user_data: data, device_data: device},status:200});
+				})
+				.catch((err) => {
+					user_data.hashed_password = undefined;
+					user_data._id = undefined;
+					resolve({ data: {user_data: data, device_data: err},status:200});
+				});
+		})
+		.catch((err)=>{
+			//console.log("ssss");
+			reject({message: 'Incorrect Email or Password', status: 401});
+		});
 	});
 } 
 

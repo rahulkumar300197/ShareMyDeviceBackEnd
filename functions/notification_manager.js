@@ -1,9 +1,10 @@
 const admin = require('firebase-admin');
 const serviceAccount = require('../config/sharemydevice-fd3fd-firebase');
+const config = require('../config/config');
 
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    databaseURL: "https://sharemydevice-fd3fd.firebaseio.com"
+    databaseURL: config.firebaseurl
 });
 
 exports.sendNotification = (data) => {

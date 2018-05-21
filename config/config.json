@@ -2,5 +2,6 @@
    "email" : "sharemydevice@gmail.com",
    "password" : "I@mc00l!!",
    "secret" : "I@mc00l!!", 
-   "database": "mongodb://localhost:27017/sharemydevice"
+   "database": "mongodb://localhost:27017/sharemydevice",
+   "firebaseurl": "https://sharemydevice-fd3fd.firebaseio.com"
 }
