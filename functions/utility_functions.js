@@ -393,8 +393,6 @@ exports.deviceNotification = (data) => {
 				device_id:data.device_id,
 				owner_id:session_data._id,
 				deviceToken: session_data[0].deviceToken,
-				isAccepted: data.isAccepted,
-				isAccepted: data.isRequested,
 				message: data.message
 				//need to impliment with transection
 			};
@@ -402,33 +400,14 @@ exports.deviceNotification = (data) => {
 			notificationmanager.sendNotification(notification_data)
 			.then((resolved_data) => {
 				console.log(JSON.stringify(resolved_data),"-----------NOTIFICATION_RESPONSE-----------");
-				if(data.isAccepted) {
-					var transection_data = {
-						device_id : notification_data.device_id,
-						owner_id : notification_data.owner_id,
-						assignee_id : notification_data.assignee_id
-					};
-					transactionmanager.addTransaction(transection_data)
-					.then((transection_responce_data) => {
-						user.findByIdAndUpdate(notification_data.owner_id, {$inc: {device_shared_count:1}},(err, updated_data) => {
-							if (err) {
-								reject({status:401, message: err});
-							} else {
-								resolve({status:200, message:"Sucess"});
-							}
-						});
-						device.findByIdAndUpdate(notification_data.device_id, {$inc: {shared_count:1}},(err, updated_data) => {
-							if (err) {
-								reject({status:401, message: err});
-							} else {
-								resolve({status:200, message:"Sucess"});
-							}
-						});
-					})
-					.catch((err) => {
-						reject({status: 444, message:"Something went wrong"});
-					});
-				} else if(data.isRequested){
+				var transection_data = {
+					device_id : notification_data.device_id,
+					owner_id : notification_data.owner_id,
+					assignee_id : notification_data.assignee_id
+				};
+				transactionmanager.addTransaction(transection_data)
+				.then((transection_responce_data) => {
+
 					user.findByIdAndUpdate(notification_data.assignee_id, {$inc: {device_request_count:1}},(err, updated_data) => {
 						if (err) {
 							reject({status:401, message: err});
@@ -436,7 +415,27 @@ exports.deviceNotification = (data) => {
 							resolve({status:200, message:"Sucess"});
 						}
 					});
-				}
+
+					user.findByIdAndUpdate(notification_data.owner_id, {$inc: {device_shared_count:1}},(err, updated_data) => {
+						if (err) {
+							reject({status:401, message: err});
+						} else {
+							resolve({status:200, message:"Sucess"});
+						}
+					});
+
+					device.findByIdAndUpdate(notification_data.device_id, {$inc: {shared_count:1}},(err, updated_data) => {
+						if (err) {
+							reject({status:401, message: err});
+						} else {
+							resolve({status:200, message:"Sucess"});
+						}
+
+					});
+				})
+				.catch((err) => {
+					reject({status: 444, message:"Something went wrong"});
+				});
 			})
 			.catch((err) => {
 				reject(err);
