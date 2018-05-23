@@ -9,9 +9,7 @@ admin.initializeApp({
 exports.sendNotification = (data) => {
 	return new Promise((resolve,reject) => {
         let payload = {
-            data:{
-                message:data.message
-            }
+            data:data
         };
 
         let options = {
