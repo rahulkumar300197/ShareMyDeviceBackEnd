@@ -392,7 +392,9 @@ exports.deviceNotification = (data) => {
 				assignee_id:data.assignee_id,
 				device_id:data.device_id,
 				owner_id:session_data._id,
-                deviceToken: session_data[0].deviceToken,
+				deviceToken: session_data[0].deviceToken,
+				isAccepted: data.isAccepted,
+				isAccepted: data.isRequested,
 				message: data.message
 				//need to impliment with transection
 			};
