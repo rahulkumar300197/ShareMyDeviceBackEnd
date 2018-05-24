@@ -23,7 +23,7 @@ exports.sendNotification = (data) => {
             resolve(response);
         })
         .catch( (err) => {
-            console.log(JSON.stringify(response),"-----------NOTIFICATION_ERR--------------");
+            console.log(JSON.stringify(err),"-----------NOTIFICATION_ERR--------------");
             reject(err);
         })
 
