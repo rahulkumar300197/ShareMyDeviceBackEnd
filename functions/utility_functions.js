@@ -391,7 +391,7 @@ exports.deviceNotification = (data) => {
 			const notification_data = {
 				assignee_id:data.assignee_id,
 				device_id:data.device_id,
-				owner_id:session_data._id,
+				owner_id:data.owner_id,
 				deviceToken: session_data[0].deviceToken,
 				message: data.message
 				//need to impliment with transection
