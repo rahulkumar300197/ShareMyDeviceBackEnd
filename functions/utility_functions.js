@@ -177,7 +177,10 @@ exports.checkAutorization = (req,res,next) => {
 	 //console.log(bearerHeader);
     if (typeof bearerHeader === undefined) {
         res.sendStatus(403);
-    } else {
+	}
+	else if (bearerHeader == undefined){
+		res.sendStatus(403);
+	} else {
         const bearer = bearerHeader.split(" ");
         req.body.token = bearer[1];
         next();
@@ -188,7 +191,7 @@ exports.accessTokenLogin = (login_data) => {
 	return new Promise((resolve,reject) => {
 		const verify = jwt.verify(login_data.token,config.secret);
        
-	  //console.log(JSON.stringify(verify));
+	    console.log(JSON.stringify(verify));
         if (verify._id) {
 			login_data._id=verify._id;
 			sessionmanager.verifySession(login_data)
@@ -200,12 +203,12 @@ exports.accessTokenLogin = (login_data) => {
 						.then((device) => {
 							data.hashed_password = undefined;
 							data._id = undefined;
-							resolve({ data: {user_data: data, device_data: device},status:200});
+							resolve({ data: {access_token: login_data.token ,user_data: data, device_data: device},status:200});
 						})
 						.catch((err) => {
 							user_data.hashed_password = undefined;
 							user_data._id = undefined;
-							resolve({ data: {user_data: data, device_data: err},status:200});
+							resolve({ data: {access_token: login_data.token ,user_data: data, device_data: err},status:200});
 						});
 			    })
 			    .catch((err)=>{
@@ -213,7 +216,7 @@ exports.accessTokenLogin = (login_data) => {
 				    reject({message: 'Incorrect Email or Password', status: 401});
 		    	});
 				} else {
-				  //console.log("A");
+				 // console.log("A");
 				  reject({message:'Unauthorized Access', status:401});
 				}
 			})
@@ -341,7 +344,8 @@ exports.forgotPassword = (data) => {
 							subject: 'Reset Password', // Subject line
 							html: `Hello ${data.name},<br><br>
 								  &nbsp;&nbsp;&nbsp;&nbsp; Your reset password link is there:-<br>
-    			                  http://localhost:8080/api/v1/resetpasswordbytoken?token=${resetPasswordToken}<br> 
+    			                  <a href="http://ec2-13-127-185-75.ap-south-1.compute.amazonaws.com:8000/?token=${resetPasswordToken}">Here</a><br>
+
     			                  The token is valid for only 5 minutes.<br><br>
     			                  Thanks,<br>
     			                  Share My Device.`
