@@ -214,6 +214,9 @@ exports.checkAutorization = (req,res,next) => {
 	}
 	else if (bearerHeader == undefined){
 		res.sendStatus(403);
+	}
+	else if (bearerHeader == null){
+		res.sendStatus(403);
 	} else {
         const bearer = bearerHeader.split(" ");
         req.body.token = bearer[1];
@@ -470,6 +473,14 @@ exports.deviceNotification = (data) => {
 						}
 
 					});
+
+					device.findByIdAndUpdate(notification_data.device_id,{is_available: false},{new: true},(err, updated_data) => {
+                        if (err) {
+							reject({status:401, message: err});
+                        } else {
+							resolve({status:200, message:"Sucess"});                                 
+					    }
+                    });
 				})
 				.catch((err) => {
 					reject({status: 444, message:"Something went wrong"});
