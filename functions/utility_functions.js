@@ -226,17 +226,17 @@ exports.checkAutorization = (req,res,next) => {
 	
 exports.accessTokenLogin = (login_data) => {
 	return new Promise((resolve,reject) => {
-		const verify = jwt.verify(login_data.token,config.secret);
-       
-	    console.log(JSON.stringify(verify));
-        if (verify._id) {
-			login_data._id=verify._id;
+		jwt.verify(login_data.token,config.secret,(err,decode) => {
+			if (err) {
+				reject({message: 'Invalid Access Token', status: 404});
+			}
+			login_data._id=decode._id;
 			sessionmanager.verifySession(login_data)
 			.then((session_data) => {
 				if (session_data) {
-				  userData(verify._id)
+				  userData(decode._id)
 			    .then((data) =>{
-						deviceData(verify._id)
+						deviceData(decode._id)
 						.then((device) => {
 							data.hashed_password = undefined;
 							data._id = undefined;
@@ -258,11 +258,8 @@ exports.accessTokenLogin = (login_data) => {
 				}
 			})
 			.catch(() => {});
-			
-      } else {
-		 // console.log("B");	
-	  	  reject({message: 'Invalid Access Token', status: 404});
-     	}
+		});
+			    
 	});
 } 
 
