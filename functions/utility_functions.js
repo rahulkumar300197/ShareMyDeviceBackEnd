@@ -38,11 +38,14 @@ const userData = (user_id) => {
 const deviceData = (user_id) => {
 	return new Promise((resolve,reject) => {
 		if (user_id !== undefined) {
-			device.find({$or:[{"owner_id": user_id},{"assignee_id": user_id}]},(err,data) => {
+			device.find({$or:[{"owner_id": user_id},{"assignee_id": user_id}]}).populate("owner_id",["device_shared_count","device_request_count","_id","name","email"])
+			.populate("assignee_id",["device_shared_count","device_request_count","_id","name","email"])
+			.then((data) => {
 				resolve(data);
-			});   
-		}else {
-			reject({message:"Not Found"});
+			})
+			.catch((err) => {
+				reject({message:"Not Found"});
+			});  
 		}
 
 	});
