@@ -151,6 +151,16 @@ module.exports = router => {
 			res.status(err.status).json({message: err.message});
 		}); 		
 	});
+
+	router.post('/deviceReturnNotification',(req, res) => {
+		functions.deviceReturnNotification(req.body)
+		.then((notification_data) => {
+			res.status(notification_data.status).json({message: notification_data.message});
+		})
+		.catch((err) => {
+			res.status(err.status).json({message: err.message});
+		}); 		
+	});
 	
 	router.post('/updatedevicestatus',functions.checkAutorization,(req, res) => {
 		functions.updatedeviceStatus(req.body).then((data) => {
