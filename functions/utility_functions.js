@@ -509,7 +509,7 @@ exports.deviceReturnNotification = (data) => {
 				};
 				transactionmanager.addTransaction(transection_data)
 				.then((transection_responce_data) => {
-					device.findByIdAndUpdate(notification_data.device_id,{is_available: true,assignee_id:""},{new: true},(err, updated_data) => {
+					device.findByIdAndUpdate(notification_data.device_id,{is_available: true,assignee_id:notification_data.owner_id},{new: true},(err, updated_data) => {
                         if (err) {
 							reject({status:401, message: err});
                         } else {
