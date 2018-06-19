@@ -481,6 +481,53 @@ exports.deviceNotification = (data) => {
 	});    
 }
 
+exports.deviceReturnNotification = (data) => {
+	return new Promise((resolve,reject) => {
+		console.log(JSON.stringify(data),"-----------REQUEST_DATA-----------");
+		sessionmanager.getSessionData(data)
+		.then((session_data) => {
+			console.log(JSON.stringify(session_data),"-----------SESSION_DATA-----------");
+			const notification_data = {
+				assignee_id:data.assignee_id,
+				device_id:data.device_id,
+				owner_id:data.owner_id,
+				deviceToken: session_data[0].deviceToken,
+				message: data.message
+				//need to impliment with transection
+			};
+			console.log("");
+			notificationmanager.sendNotification(notification_data)
+			.then((resolved_data) => {
+				console.log(JSON.stringify(resolved_data),"-----------NOTIFICATION_RESPONSE-----------");
+				var transection_data = {
+					device_id : notification_data.device_id,
+					owner_id : notification_data.owner_id,
+					assignee_id : ""
+				};
+				transactionmanager.addTransaction(transection_data)
+				.then((transection_responce_data) => {
+					device.findByIdAndUpdate(notification_data.device_id,{is_available: true,assignee_id:""},{new: true},(err, updated_data) => {
+                        if (err) {
+							reject({status:401, message: err});
+                        } else {
+							resolve({status:200, message:"Sucess"});                                 
+					    }
+                    });
+				})
+				.catch((err) => {
+					reject({status: 444, message:"Something went wrong"});
+				});
+			})
+			.catch((err) => {
+				reject(err);
+			});
+		})
+		.catch((err) => {
+			reject(err)
+		});
+	});    
+}
+
 exports.updateStatusRequest = () => {
 	return new Promise((resolve, reject) => {
 
