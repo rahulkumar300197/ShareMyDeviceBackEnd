@@ -38,7 +38,7 @@ const userData = (user_id) => {
 const deviceData = (user_id) => {
 	return new Promise((resolve,reject) => {
 		if (user_id !== undefined) {
-			device.find({owner_id:user_id},(err,data) => {
+			device.find({$or:[{"owner_id": user_id},{"assignee_id": user_id}]},(err,data) => {
 				resolve(data);
 			});   
 		}else {
@@ -462,16 +462,7 @@ exports.deviceNotification = (data) => {
 						}
 					});
 
-					device.findByIdAndUpdate(notification_data.device_id, {$inc: {shared_count:1}},(err, updated_data) => {
-						if (err) {
-							reject({status:401, message: err});
-						} else {
-							resolve({status:200, message:"Sucess"});
-						}
-
-					});
-
-					device.findByIdAndUpdate(notification_data.device_id,{is_available: false},{new: true},(err, updated_data) => {
+					device.findByIdAndUpdate(notification_data.device_id,{$inc: {shared_count:1},is_available: false,assignee_id:notification_data.assignee_id},{new: true},(err, updated_data) => {
                         if (err) {
 							reject({status:401, message: err});
                         } else {
