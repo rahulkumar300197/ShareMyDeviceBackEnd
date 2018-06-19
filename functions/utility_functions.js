@@ -505,7 +505,7 @@ exports.deviceReturnNotification = (data) => {
 				var transection_data = {
 					device_id : notification_data.device_id,
 					owner_id : notification_data.owner_id,
-					assignee_id : ""
+					assignee_id : null
 				};
 				transactionmanager.addTransaction(transection_data)
 				.then((transection_responce_data) => {
