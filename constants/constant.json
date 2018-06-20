@@ -1,7 +1,7 @@
 {
-  "updateStatusMessage" : "",
-  "android":"ANDROID",
-  "ios":"IOS",
-  "success":"Success",
-  "failed":"Failed"
+  "updateStatusMessage": "",
+  "android": "ANDROID",
+  "ios": "IOS",
+  "success": "Success",
+  "failed": "Failed"
 }

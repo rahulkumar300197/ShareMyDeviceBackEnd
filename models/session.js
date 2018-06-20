@@ -2,15 +2,21 @@
 const config = require('../config/config');
 const mongoose = require('mongoose');
 
-const sessionSchema = mongoose.Schema({	
-    userId: {
-      type: mongoose.Schema.ObjectId,
-      ref: 'user',
-      unique: true
-    },
-    remoteIP: { type: String },
-    deviceType: { type: String },
-    deviceToken: { type: String }
+const sessionSchema = mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.ObjectId,
+    ref: 'user',
+    unique: true
+  },
+  remoteIP: {
+    type: String
+  },
+  deviceType: {
+    type: String
+  },
+  deviceToken: {
+    type: String
+  }
 
 });
 

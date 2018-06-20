@@ -7,27 +7,27 @@ admin.initializeApp({
 });
 
 exports.sendNotification = (data) => {
-	return new Promise((resolve,reject) => {
+    return new Promise((resolve, reject) => {
         let payload = {
             data: {
-                message: data.message 
+                message: data.message
             }
         };
 
         let options = {
-            priority:'high',
-            timeToLive:24*60*60
+            priority: 'high',
+            timeToLive: 24 * 60 * 60
         };
 
-        admin.messaging().sendToDevice(data.deviceToken,payload,options)
-        .then( (response) => {
-            console.log(JSON.stringify(response),"-----------NOTIFICATION_RESPONSE--------------");
-            resolve(response);
-        })
-        .catch( (err) => {
-            console.log(JSON.stringify(err),"-----------NOTIFICATION_ERR--------------");
-            reject(err);
-        })
+        admin.messaging().sendToDevice(data.deviceToken, payload, options)
+            .then((response) => {
+                console.log(JSON.stringify(response), "-----------NOTIFICATION_RESPONSE--------------");
+                resolve(response);
+            })
+            .catch((err) => {
+                console.log(JSON.stringify(err), "-----------NOTIFICATION_ERR--------------");
+                reject(err);
+            })
 
-	});  
+    });
 }
