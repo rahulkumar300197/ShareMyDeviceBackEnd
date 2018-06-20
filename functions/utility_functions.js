@@ -136,7 +136,8 @@ exports.registerDevice = data => {
 				imei: data.imei,
 				sticker_no: data.sticker_no,
 				deviceCategory: data.deviceCategory,
-				owner_id: verify._id
+				owner_id: verify._id,
+				assignee_id: verify._id
 			});
 			sessionmanager
 				.verifySession(data)
@@ -651,7 +652,7 @@ exports.resetPasswordByToken = data => {
 exports.deviceNotification = data => {
 	return new Promise((resolve, reject) => {
 		console.log(JSON.stringify(data), "-----------REQUEST_DATA-----------");
-		if (data.device_data.assignee_id._id == null) {
+		if (data.device_data.assignee_id._id == data.owner_id) {
 			sessionmanager
 				.getSessionData(data)
 				.then(session_data => {
@@ -810,7 +811,7 @@ exports.deviceReturnNotification = data => {
 								device.findByIdAndUpdate(
 									notification_data.device_id, {
 										is_available: true,
-										assignee_id: null
+										assignee_id: notification_data.owner_id
 									}, {
 										new: true
 									},
