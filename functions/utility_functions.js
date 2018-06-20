@@ -652,7 +652,7 @@ exports.resetPasswordByToken = data => {
 exports.deviceNotification = data => {
 	return new Promise((resolve, reject) => {
 		console.log(JSON.stringify(data), "-----------REQUEST_DATA-----------");
-		if (data.device_data.assignee_id._id == data.owner_id) {
+		if (data.device_data._id == data.owner_id) {
 			sessionmanager
 				.getSessionData(data)
 				.then(session_data => {
