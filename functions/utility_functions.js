@@ -464,7 +464,11 @@ exports.getDevices = token => {
 				});
 			} else {
 				device
-					.find({})
+					.find({
+						owner_id: {
+							$ne: decoded._id
+						}
+					})
 					.populate("owner_id", [
 						"device_shared_count",
 						"device_request_count",
@@ -652,7 +656,7 @@ exports.resetPasswordByToken = data => {
 exports.deviceNotification = data => {
 	return new Promise((resolve, reject) => {
 		console.log(JSON.stringify(data), "-----------REQUEST_DATA-----------");
-		if (data.device_data.assignee_id._id == data.owner_id) {
+		if (data.device_data._id == data.owner_id) {
 			sessionmanager
 				.getSessionData(data)
 				.then(session_data => {
@@ -660,107 +664,122 @@ exports.deviceNotification = data => {
 						JSON.stringify(session_data),
 						"-----------SESSION_DATA-----------"
 					);
-					const notification_data = {
-						assignee_id: data.assignee_id,
-						device_id: data.device_id,
-						owner_id: data.owner_id,
-						deviceToken: session_data[0].deviceToken,
-						message: data.message
-						//need to impliment with transection
-					};
-					console.log("");
-					notificationmanager
-						.sendNotification(notification_data)
-						.then(resolved_data => {
-							console.log(
-								JSON.stringify(resolved_data),
-								"-----------NOTIFICATION_RESPONSE-----------"
-							);
-							var transection_data = {
-								device_id: notification_data.device_id,
-								owner_id: notification_data.owner_id,
-								assignee_id: notification_data.assignee_id
+					device.findById(data.device_id, ["is_available"], (err, is_available) => {
+						if (err) {
+							reject({
+								status: 404,
+								message: "Device not found."
+							});
+						} else if (is_available) {
+
+							const notification_data = {
+								assignee_id: data.assignee_id,
+								device_id: data.device_id,
+								owner_id: data.owner_id,
+								deviceToken: session_data[0].deviceToken,
+								message: data.message
+								//need to impliment with transection
 							};
-							transactionmanager
-								.addTransaction(transection_data)
-								.then(transection_responce_data => {
-									user.findByIdAndUpdate(
-										notification_data.assignee_id, {
-											$inc: {
-												device_request_count: 1
-											}
-										},
-										(err, updated_data) => {
-											if (err) {
-												reject({
-													status: 401,
-													message: err
-												});
-											} else {
-												resolve({
-													status: 200,
-													message: "Sucess"
-												});
-											}
-										}
+							console.log("");
+							notificationmanager
+								.sendNotification(notification_data)
+								.then(resolved_data => {
+									console.log(
+										JSON.stringify(resolved_data),
+										"-----------NOTIFICATION_RESPONSE-----------"
 									);
+									var transection_data = {
+										device_id: notification_data.device_id,
+										owner_id: notification_data.owner_id,
+										assignee_id: notification_data.assignee_id
+									};
+									transactionmanager
+										.addTransaction(transection_data)
+										.then(transection_responce_data => {
+											user.findByIdAndUpdate(
+												notification_data.assignee_id, {
+													$inc: {
+														device_request_count: 1
+													}
+												},
+												(err, updated_data) => {
+													if (err) {
+														reject({
+															status: 401,
+															message: err
+														});
+													} else {
+														resolve({
+															status: 200,
+															message: "Sucess"
+														});
+													}
+												}
+											);
 
-									user.findByIdAndUpdate(
-										notification_data.owner_id, {
-											$inc: {
-												device_shared_count: 1
-											}
-										},
-										(err, updated_data) => {
-											if (err) {
-												reject({
-													status: 401,
-													message: err
-												});
-											} else {
-												resolve({
-													status: 200,
-													message: "Sucess"
-												});
-											}
-										}
-									);
+											user.findByIdAndUpdate(
+												notification_data.owner_id, {
+													$inc: {
+														device_shared_count: 1
+													}
+												},
+												(err, updated_data) => {
+													if (err) {
+														reject({
+															status: 401,
+															message: err
+														});
+													} else {
+														resolve({
+															status: 200,
+															message: "Sucess"
+														});
+													}
+												}
+											);
 
-									device.findByIdAndUpdate(
-										notification_data.device_id, {
-											$inc: {
-												shared_count: 1
-											},
-											is_available: false,
-											assignee_id: notification_data.assignee_id
-										}, {
-											new: true
-										},
-										(err, updated_data) => {
-											if (err) {
-												reject({
-													status: 401,
-													message: err
-												});
-											} else {
-												resolve({
-													status: 200,
-													message: "Sucess"
-												});
-											}
-										}
-									);
+											device.findByIdAndUpdate(
+												notification_data.device_id, {
+													$inc: {
+														shared_count: 1
+													},
+													is_available: false,
+													assignee_id: notification_data.assignee_id
+												}, {
+													new: true
+												},
+												(err, updated_data) => {
+													if (err) {
+														reject({
+															status: 401,
+															message: err
+														});
+													} else {
+														resolve({
+															status: 200,
+															message: "Sucess"
+														});
+													}
+												}
+											);
+										})
+										.catch(err => {
+											reject({
+												status: 404,
+												message: "Something went wrong"
+											});
+										});
 								})
 								.catch(err => {
-									reject({
-										status: 404,
-										message: "Something went wrong"
-									});
+									reject(err);
 								});
-						})
-						.catch(err => {
-							reject(err);
-						});
+						} else {
+							reject({
+								status: 404,
+								message: "Device is currently using by it's owner."
+							});
+						}
+					});
 				})
 				.catch(err => {
 					reject(err);
