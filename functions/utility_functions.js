@@ -48,8 +48,7 @@ const deviceData = user_id => {
 		if (user_id !== undefined) {
 			device
 				.find({
-					$or: [
-						{
+					$or: [{
 							owner_id: user_id
 						},
 						{
@@ -132,7 +131,7 @@ exports.registerDevice = data => {
 	return new Promise((resolve, reject) => {
 		const verify = jwt.verify(data.token, config.secret);
 		data._id = verify._id;
-	
+
 
 		if (verify._id) {
 			const newDevice = new device({
@@ -445,90 +444,93 @@ exports.emailPasswordLogin = data => {
 
 exports.getDevices = token => {
 	return new Promise((resolve, reject) => {
-		jwt
-			.verify(token, config.secret)
-			.then(decoded => {
-				device
-					.find({
-						owner_id: {
-							$ne: decoded._id
-						}
-					})
-					.populate("owner_id", [
-						"device_shared_count",
-						"device_request_count",
-						"_id",
-						"name",
-						"email"
-					])
-					.populate("assignee_id", [
-						"device_shared_count",
-						"device_request_count",
-						"_id",
-						"name",
-						"email"
-					])
-					.sort({
-						is_available: -1
-					});
-			})
+		jwt.verify(token, config.secret, (err, decoded) => {
+			device
+				.find({
+					owner_id: {
+						$ne: decoded._id
+					}
+				})
+				.populate("owner_id", [
+					"device_shared_count",
+					"device_request_count",
+					"_id",
+					"name",
+					"email"
+				])
+				.populate("assignee_id", [
+					"device_shared_count",
+					"device_request_count",
+					"_id",
+					"name",
+					"email"
+				])
+				.sort({
+					is_available: -1
+				})
 
-			.then(data => {
-				resolve({
-					status: 200,
-					list: data
+				.then(data => {
+					resolve({
+						status: 200,
+						list: data
+					});
+				})
+				.catch(() => {
+					reject({
+						status: 404,
+						message: "Something Went Wrong"
+					});
 				});
-			})
-			.catch(() => {
-				reject({
-					status: 404,
-					message: "Something Went Wrong"
-				});
-			});
+		})
 	});
 };
 
 exports.resetPassword = data => {
 	return new Promise((resolve, reject) => {
-		jwt
-			.verify(data.token, config.secret)
-			.then(decoded => {
-				return user.findById(decoded._id);
-			})
-			.then(user_data => {
-				if (
-					comparePasswordUsingBcrypt(data.password, user_data.hashed_password)
-				) {
-					return user.findByIdAndUpdate(user_data._id, {
-						hashed_password: hashPasswordUsingBcrypt(data.new_password)
-					});
-				} else {
-					resolve({
-						status: 401,
-						message: "Password Not Matched"
-					});
-				}
-			})
-			.then(() => {
-				resolve({
-					status: 200,
-					message: "Password Sucessfully Changed"
-				});
-			})
-			.catch(() => {
+		jwt.verify(data.token, config.secret, (err, decoded) => {
+			if (err) {
 				reject({
 					message: "Something Went Wrong !!",
 					status: 500
 				});
-			});
+			} else {
+				user.findById(decoded._id)
+					.then(user_data => {
+						if (
+							comparePasswordUsingBcrypt(data.password, user_data.hashed_password)
+						) {
+							return user.findByIdAndUpdate(user_data._id, {
+								hashed_password: hashPasswordUsingBcrypt(data.new_password)
+							});
+						} else {
+							resolve({
+								status: 401,
+								message: "Password Not Matched"
+							});
+						}
+					})
+					.then(() => {
+						resolve({
+							status: 200,
+							message: "Password Sucessfully Changed"
+						});
+					})
+					.catch(() => {
+						reject({
+							message: "Something Went Wrong !!",
+							status: 500
+						});
+					});
+			}
+
+		});
 	});
 };
 
 exports.forgotPassword = data => {
 	return new Promise((resolve, reject) => {
 		let resetPasswordToken = null;
-		user
-			.findOne({
+		user.findOne({
 				email: data.email
 			})
 			.then(user_data => {
@@ -593,31 +595,37 @@ exports.forgotPassword = data => {
 
 exports.resetPasswordByToken = data => {
 	return new Promise((resolve, reject) => {
-		jwt
-			.verify(data.token, config.secret)
-			.then(decoded => {
-				return user.findOne({
-					email: decoded.email
-				});
-			})
-			.then(user_data => {
-				return user.findByIdAndUpdate(user_data._id, {
-					hashed_password: hashPasswordUsingBcrypt(data.password),
-					forgot_password_token: ""
-				});
-			})
-			.then(() => {
-				resolve({
-					status: 200,
-					message: "Password Successfully Changed"
-				});
-			})
-			.catch(
+		jwt.verify(data.token, config.secret, (err, decoded) => {
+			if (err) {
 				reject({
 					status: 500,
 					message: "Token Expired"
-				})
-			);
+				});
+			} else {
+				user.findOne({
+						email: decoded.email
+					})
+					.then(user_data => {
+						return user.findByIdAndUpdate(user_data._id, {
+							hashed_password: hashPasswordUsingBcrypt(data.password),
+							forgot_password_token: ""
+						});
+					})
+					.then(() => {
+						resolve({
+							status: 200,
+							message: "Password Successfully Changed"
+						});
+					})
+					.catch(
+						reject({
+							status: 500,
+							message: "Token Expired"
+						})
+					);
+			}
+		});
+
 	});
 };
 
@@ -726,7 +734,7 @@ exports.deviceReturnNotification = data => {
 				return notificationmanager.sendNotification(notification_data);
 			})
 			.then(resolved_data => {
-				console.log(JSON.stringify(resolved_data),"-----------NOTIFICATION_RESPONSE-----------");
+				console.log(JSON.stringify(resolved_data), "-----------NOTIFICATION_RESPONSE-----------");
 				var transection_data = {
 					device_id: notification_data.device_id,
 					owner_id: notification_data.owner_id,
@@ -788,32 +796,37 @@ exports.updateStatusRequest = () => {
 
 exports.updatedeviceStatus = data => {
 	return new Promise((resolve, reject) => {
-		jwt.verify(data.token, config.secret)
-			.then(() => {
+		jwt.verify(data.token, config.secret, (err, decoded) => {
+			if (err) {
+				reject({
+					status: 401,
+					message: "Access Denied"
+				});
+			} else {
 				let updateObj = {
 					is_available: data.is_available
 				};
-				return device.findByIdAndUpdate(
-					data._id,
-					updateObj, {
-						new: true
-					}
-				);
-			})
+				device.findByIdAndUpdate(
+						data._id,
+						updateObj, {
+							new: true
+						}
+					)
+					.then(() => {
+						resolve({
+							status: 200,
+							message: constant.success
+						});
+					})
 
-			.then(() => {
-				resolve({
-					status: 200,
-					message: constant.success
-				});
-			})
-
-			.catch((err) => {
-				reject({
-					status: 401,
-					message: err
-				});
-			});
+					.catch((err) => {
+						reject({
+							status: 401,
+							message: err
+						});
+					});
+			}
+		});
 	});
 };
 
