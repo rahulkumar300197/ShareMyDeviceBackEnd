@@ -1,9 +1,11 @@
+"use strict";
 const admin = require('firebase-admin');
 const serviceAccount = require('../config/sharemydevice-fd3fd-firebase');
+const config = require('../config/config');
 
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    databaseURL: "https://sharemydevice-fd3fd.firebaseio.com"
+    databaseURL: config.firebaseURL
 });
 
 exports.sendNotification = (data) => {
@@ -20,14 +22,12 @@ exports.sendNotification = (data) => {
         };
 
         admin.messaging().sendToDevice(data.deviceToken, payload, options)
-            .then((response) => {
-                console.log(JSON.stringify(response), "-----------NOTIFICATION_RESPONSE--------------");
-                resolve(response);
-            })
-            .catch((err) => {
-                console.log(JSON.stringify(err), "-----------NOTIFICATION_ERR--------------");
-                reject(err);
-            })
+        .then((response) => {
+            resolve(response);
+        })
+        .catch((err) => {
+            reject(err);
+        });
 
     });
 }

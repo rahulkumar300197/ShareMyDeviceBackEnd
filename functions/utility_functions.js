@@ -10,6 +10,7 @@ const notificationmanager = require("./notification_manager");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
+const async = require("async");
 
 const hashPasswordUsingBcrypt = plainTextPassword => {
 	const saltRounds = 10;
@@ -24,12 +25,18 @@ const userData = user_id => {
 	return new Promise((resolve, reject) => {
 		if (user_id) {
 			user.findById(user_id, (err, data) => {
-				//console.log(JSON.stringify(data));
+				if (err) {
+					reject({
+						status: 500,
+						message: "Internal Server Error !"
+					});
+				}
 				data.hashed_password = undefined;
 				resolve(data);
 			});
 		} else {
-			resolve({
+			reject({
+				status: 404,
 				message: "Not Found"
 			});
 		}
@@ -41,11 +48,14 @@ const deviceData = user_id => {
 		if (user_id !== undefined) {
 			device
 				.find({
-					$or: [{
-						owner_id: user_id
-					}, {
-						assignee_id: user_id
-					}]
+					$or: [
+						{
+							owner_id: user_id
+						},
+						{
+							assignee_id: user_id
+						}
+					]
 				})
 				.populate("owner_id", [
 					"device_shared_count",
@@ -64,14 +74,27 @@ const deviceData = user_id => {
 				.then(data => {
 					resolve(data);
 				})
-				.catch(err => {
+				.catch(() => {
 					reject({
-						message: "Not Found"
+						status: 500,
+						message: "Internal Server Error !"
 					});
 				});
 		}
 	});
 };
+
+const send = (activeUser, cb) => {
+	activeUser.message = constant.updateStatusMessage;
+	notificationmanager.sendNotification(activeUser)
+		.then((data) => {
+			return cb(null, data);
+		})
+		.catch((err) => {
+			return cb(err, null);
+		});
+};
+
 
 exports.registerUser = data => {
 	//console.log(data.ip);
@@ -82,39 +105,25 @@ exports.registerUser = data => {
 			mobile_no: data.mobile_no,
 			hashed_password: hashPasswordUsingBcrypt(data.password)
 		});
-
+		var response_data = {};
 		newUser
 			.save()
-
 			.then(user_data => {
+				response_data.user_data = user_data;
 				data._id = user_data._id;
-				sessionmanager
-					.setSession(data)
-					.then(session_data => {
-						const access_token = jwt.sign(session_data, config.secret, {
-							expiresIn: 86400
-						});
-						data._id = undefined;
-						resolve({
-							access_token: access_token,
-							user_data: user_data
-						});
-					})
-					.catch(() => {});
+				return sessionmanager.setSession(data);
+			})
+
+			.then(session_data => {
+				const access_token = jwt.sign(session_data, config.secret, {
+					expiresIn: 86400
+				});
+				response_data.access_token = access_token;
+				resolve(response_data);
 			})
 
 			.catch(err => {
-				if (err.code === 11000) {
-					reject({
-						status: 409,
-						message: err.message
-					});
-				} else {
-					reject({
-						status: 500,
-						message: "Internal Server Error !"
-					});
-				}
+				reject(err);
 			});
 	});
 };
@@ -122,8 +131,8 @@ exports.registerUser = data => {
 exports.registerDevice = data => {
 	return new Promise((resolve, reject) => {
 		const verify = jwt.verify(data.token, config.secret);
-		//console.log(JSON.stringify(verify));
 		data._id = verify._id;
+	
 
 		if (verify._id) {
 			const newDevice = new device({
@@ -143,51 +152,48 @@ exports.registerDevice = data => {
 				.verifySession(data)
 				.then(session_data => {
 					if (session_data) {
-						newDevice
-							.save()
-							.then(device_data => {
-								user.findByIdAndUpdate(
-									verify._id, {
-										$inc: {
-											device_count: 1
-										}
-									},
-									(err, data) => {
-										resolve({
-											status: 201,
-											message: "Device Registered Sucessfully !",
-											device_data
-										});
-									}
-								);
-							})
-
-							.catch(err => {
-								if (err.code === 11000) {
-									reject({
-										status: 409,
-										message: "Device Already Registered !"
-									});
-								} else {
-									reject({
-										status: 500,
-										message: "Invalid Data !!"
-									});
-								}
-							});
+						return newDevice.save();
 					} else {
-						reject(reject({
+						reject({
 							message: "Unauthorized Access",
 							status: 401
-						}));
+						});
 					}
 				})
-				.catch(() => {});
+
+				.then(() => {
+					return user.findByIdAndUpdate(verify._id, {
+						$inc: {
+							device_count: 1
+						}
+					});
+				})
+
+				.then(() => {
+					resolve({
+						status: 201,
+						message: "Device Registered Sucessfully !"
+					});
+				})
+
+				.catch(err => {
+					if (err.code === 11000) {
+						reject({
+							status: 409,
+							message: "Device Already Registered !"
+						});
+					} else {
+						reject({
+							status: 500,
+							message: "Invalid Data !!"
+						});
+					}
+				});
 		} else {
-			reject(reject({
+			reject({
 				message: "Unauthorized Access",
 				status: 401
-			}));
+			});
 		}
 	});
 };
@@ -205,39 +211,34 @@ exports.updateuser = data => {
 				.verifySession(sesssionModel)
 				.then(session_data => {
 					if (session_data) {
-						user.findByIdAndUpdate(
-							verify._id,
-							data.userData, {
-								new: true
-							},
-							(err, model) => {
-								if (err) {
-									reject({
-										status: 401,
-										message: err
-									});
-								} else {
-									resolve({
-										status: 200,
-										message: constant.success,
-										data: model
-									});
-								}
-							}
-						);
+						return user.findByIdAndUpdate(verify._id, data.userData, {
+							new: true
+						});
 					} else {
-						reject(reject({
+						reject({
 							message: "Unauthorized Access",
 							status: 401
-						}));
+						});
 					}
 				})
-				.catch(() => {});
+				.then(model => {
+					resolve({
+						status: 200,
+						message: constant.success,
+						data: model
+					});
+				})
+				.catch(err => {
+					reject({
+						status: 401,
+						message: err
+					});
+				});
 		} else {
-			reject(reject({
+			reject({
 				message: "Unauthorized Access",
 				status: 401
-			}));
+			});
 		}
 	});
 };
@@ -255,39 +256,38 @@ exports.updatedevice = data => {
 				.verifySession(sesssionModel)
 				.then(session_data => {
 					if (session_data) {
-						device.findByIdAndUpdate(
+						return device.findByIdAndUpdate(
 							data.deviceData._id,
 							data.deviceData, {
 								new: true
-							},
-							(err, model) => {
-								if (err) {
-									reject({
-										status: 401,
-										message: err
-									});
-								} else {
-									resolve({
-										status: 200,
-										message: constant.success,
-										data: model
-									});
-								}
 							}
 						);
 					} else {
-						reject(reject({
+						reject({
 							message: "Unauthorized Access",
 							status: 401
-						}));
+						});
 					}
 				})
-				.catch(() => {});
+
+				.then(model => {
+					resolve({
+						status: 200,
+						message: constant.success,
+						data: model
+					});
+				})
+				.catch(err => {
+					reject({
+						status: 401,
+						message: err
+					});
+				});
 		} else {
-			reject(reject({
+			reject({
 				message: "Unauthorized Access",
 				status: 401
-			}));
+			});
 		}
 	});
 };
@@ -317,45 +317,16 @@ exports.accessTokenLogin = login_data => {
 					status: 404
 				});
 			}
-
+			var data = {
+				access_token: login_data.token
+			};
 			login_data._id = decode._id;
 			sessionmanager
 				.verifySession(login_data)
+
 				.then(session_data => {
 					if (session_data) {
-						userData(decode._id)
-							.then(data => {
-								deviceData(decode._id)
-									.then(device => {
-										data.hashed_password = undefined;
-										resolve({
-											data: {
-												access_token: login_data.token,
-												user_data: data,
-												device_data: device
-											},
-											status: 200
-										});
-									})
-									.catch(err => {
-										user_data.hashed_password = undefined;
-										resolve({
-											data: {
-												access_token: login_data.token,
-												user_data: data,
-												device_data: err
-											},
-											status: 200
-										});
-									});
-							})
-							.catch(err => {
-								//console.log("ssss");
-								reject({
-									message: "Incorrect Email or Password",
-									status: 401
-								});
-							});
+						return userData(decode._id);
 					} else {
 						// console.log("A");
 						reject({
@@ -364,7 +335,27 @@ exports.accessTokenLogin = login_data => {
 						});
 					}
 				})
-				.catch(() => {});
+
+				.then(user_data => {
+					user_data.hashed_password = undefined;
+					data.user_data = user_data;
+					return deviceData(decode._id);
+				})
+
+				.then(device => {
+					data.device_data = device;
+					resolve({
+						data: data,
+						status: 200
+					});
+				})
+				.catch(err => {
+					if (err.status == 500)
+						reject({
+							status: 500,
+							message: "Internal Server Error !"
+						});
+				});
 		});
 	});
 };
@@ -373,72 +364,70 @@ exports.emailPasswordLogin = data => {
 	return new Promise((resolve, reject) => {
 		if (data) {
 			if (data.email !== undefined) {
-				user.findOne({
-					email: data.email
-				}, (err, user_data) => {
-					//console.log(user_data);
-					if (err) reject({
-						message: err,
-						status: 404
-					});
-					if (user_data == null) {
-						reject({
-							message: "Not Found !!",
-							status: 404
+				var response_data = {};
+				user
+					.findOne({
+						email: data.email
+					})
+					.then(user_data => {
+						//console.log(user_data);
+						response_data.user_data = user_data;
+						if (user_data == null) {
+							reject({
+								message: "Not Found !!",
+								status: 404
+							});
+						} else {
+							if (
+								comparePasswordUsingBcrypt(
+									data.password,
+									user_data.hashed_password
+								)
+							) {
+								data._id = user_data._id;
+								return sessionmanager.setSession(data);
+							} else {
+								reject({
+									message: "Incorrect Email or Password",
+									status: 401
+								});
+							}
+						}
+					})
+
+					.then(() => {
+						const token = jwt.sign({
+								_id: response_data.user_data._id
+							},
+							config.secret, {
+								expiresIn: 86400
+							}
+						);
+						response_data.access_token = token;
+						return deviceData(response_data.user_data._id);
+					})
+
+					.then(device => {
+						response_data.user_data.hashed_password = undefined;
+						response_data.user_data.forgot_password_token = undefined;
+						response_data.user_data.__v = undefined;
+						response_data.device_data = device;
+						resolve({
+							data: response_data,
+							status: 200
 						});
-					} else {
-						if (
-							comparePasswordUsingBcrypt(
-								data.password,
-								user_data.hashed_password
-							)
-						) {
-							data._id = user_data._id;
-							sessionmanager
-								.setSession(data)
-								.then(session_data => {
-									const token = jwt.sign({
-											_id: user_data._id
-										},
-										config.secret, {
-											expiresIn: 86400
-										}
-									);
-									deviceData(user_data._id)
-										.then(device => {
-											user_data.hashed_password = undefined;
-											user_data.forgot_password_token = undefined;
-											user_data.__v = undefined;
-											resolve({
-												data: {
-													access_token: token,
-													user_data: user_data,
-													device_data: device
-												},
-												status: 200
-											});
-										})
-										.catch(err => {
-											user_data.hashed_password = undefined;
-											resolve({
-												data: {
-													access_token: token,
-													user_data: user_data,
-													device_data: err
-												},
-												status: 200
-											});
-										});
-								})
-								.catch(() => {});
+					})
+
+					.catch(err => {
+						if (err.status == 500) {
+							reject(err);
 						} else {
 							reject({
-								message: "Incorrect Email or Password",
-								status: 401
+								message: "Something Went Wrong !!",
+								status: 500
 							});
 						}
-					}
-				});
+					});
 			} else {
 				reject({
 					message: "Bad Request !!",
@@ -456,13 +445,9 @@ exports.emailPasswordLogin = data => {
 
 exports.getDevices = token => {
 	return new Promise((resolve, reject) => {
-		jwt.verify(token, config.secret, (err, decoded) => {
-			if (err) {
-				reject({
-					status: 404,
-					message: err
-				});
-			} else {
+		jwt
+			.verify(token, config.secret)
+			.then(decoded => {
 				device
 					.find({
 						owner_id: {
@@ -485,304 +470,232 @@ exports.getDevices = token => {
 					])
 					.sort({
 						is_available: -1
-					})
-					.then(data => {
-						resolve({
-							status: 200,
-							list: data
-						});
-					})
-					.catch(err => {
-						reject({
-							status: 404,
-							message: err
-						});
 					});
-			}
-		});
+			})
+
+			.then(data => {
+				resolve({
+					status: 200,
+					list: data
+				});
+			})
+			.catch(() => {
+				reject({
+					status: 404,
+					message: "Something Went Wrong"
+				});
+			});
 	});
 };
 
 exports.resetPassword = data => {
 	return new Promise((resolve, reject) => {
-		jwt.verify(data.token, config.secret, (err, decoded) => {
-			if (err) {
+		jwt
+			.verify(data.token, config.secret)
+			.then(decoded => {
+				return user.findById(decoded._id);
+			})
+			.then(user_data => {
+				if (
+					comparePasswordUsingBcrypt(data.password, user_data.hashed_password)
+				) {
+					return user.findByIdAndUpdate(user_data._id, {
+						hashed_password: hashPasswordUsingBcrypt(data.new_password)
+					});
+				} else {
+					resolve({
+						status: 401,
+						message: "Password Not Matched"
+					});
+				}
+			})
+			.then(() => {
 				resolve({
 					status: 200,
-					message: err
+					message: "Password Sucessfully Changed"
 				});
-			} else {
-				user.findById(decoded._id, (err, user_data) => {
-					if (
-						comparePasswordUsingBcrypt(data.password, user_data.hashed_password)
-					) {
-						user.findByIdAndUpdate(
-							decoded._id, {
-								hashed_password: hashPasswordUsingBcrypt(data.new_password)
-							},
-							(err, updated_data) => {
-								if (err) {
-									reject({
-										status: 401,
-										message: err
-									});
-								} else {
-									resolve({
-										status: 200,
-										message: "Password Sucessfully Changed"
-									});
-								}
-							}
-						);
-					} else {
-						resolve({
-							status: 401,
-							message: "Invalid Current Password"
-						});
-					}
+			})
+			.catch(() => {
+				reject({
+					message: "Something Went Wrong !!",
+					status: 500
 				});
-			}
-		});
+			});
 	});
 };
 
 exports.forgotPassword = data => {
 	return new Promise((resolve, reject) => {
-		user.findOne({
-			email: data.email
-		}, (err, user_data) => {
-			if (err) {
-				reject({
-					message: "Invalid Email",
-					status: 404
-				});
-			} else {
-				const resetPasswordToken = jwt.sign({
-						email: user_data.email
-					},
-					config.secret, {
-						expiresIn: 300
-					}
-				);
-				console.log(resetPasswordToken, "token");
-				user.findByIdAndUpdate(
-					user_data._id, {
-						forgot_password_token: resetPasswordToken
-					},
-					(err, data) => {
-						if (err) {} else {
-							let transporter = nodemailer.createTransport({
-								host: "smtp.gmail.com",
-								port: 587,
-								secure: false, // true for 465, false for other ports
-								auth: {
-									user: config.email, // generated ethereal user
-									pass: config.password // generated ethereal password
-								}
-							});
-
-							let mailOptions = {
-								from: '"ShareMyDevice"' + "<" + config.email + ">", // sender address
-								to: data.email, // list of receivers
-								subject: "Reset Password", // Subject line
-								html: `Hello ${data.name},<br><br>
-					   &nbsp;&nbsp;&nbsp;&nbsp; Your reset password link is there:-<br>
-    			       <a href="http://ec2-13-127-185-75.ap-south-1.compute.amazonaws.com:8000/?token=${resetPasswordToken}">Here</a><br>
-
-    			       The token is valid for only 5 minutes.<br><br>
-    			       Thanks,<br>
-    			       Share My Device.`
-							};
-
-							transporter.sendMail(mailOptions, (error, info) => {
-								if (error) {
-									reject({
-										message: err,
-										status: 404
-									});
-								} else {
-									resolve({
-										message: "Reset Password Link has been sent to your mail",
-										status: 200
-									});
-								}
-							});
+		let resetPasswordToken = null;
+		user
+			.findOne({
+				email: data.email
+			})
+			.then(user_data => {
+				if (user_data == null || user_data == undefined) {
+					reject({
+						message: "Invalid Email",
+						status: 404
+					});
+				} else {
+					resetPasswordToken = jwt.sign({
+							email: user_data.email
+						},
+						config.secret, {
+							expiresIn: 300
 						}
+					);
+					return user.findByIdAndUpdate(user_data._id, {
+						forgot_password_token: resetPasswordToken
+					});
+				}
+			})
+			.then(data => {
+				let transporter = nodemailer.createTransport({
+					host: "smtp.gmail.com",
+					port: 587,
+					secure: false, // true for 465, false for other ports
+					auth: {
+						user: config.email, // generated ethereal user
+						pass: config.password // generated ethereal password
 					}
-				);
-			}
-		});
+				});
+
+				let mailOptions = {
+					from: '"ShareMyDevice"' + "<" + config.email + ">", // sender address
+					to: data.email, // list of receivers
+					subject: "Reset Password", // Subject line
+					html: `Hello ${data.name},<br><br>
+   &nbsp;&nbsp;&nbsp;&nbsp; Your reset password link is there:-<br>
+   <a href="http://ec2-13-127-185-75.ap-south-1.compute.amazonaws.com:8000/?token=${resetPasswordToken}">Here</a><br>
+
+   The token is valid for only 5 minutes.<br><br>
+   Thanks,<br>
+   Share My Device.`
+				};
+
+				return transporter.sendMail(mailOptions);
+			})
+			.then(() => {
+				resolve({
+					message: "Reset Password Link has been sent to your mail",
+					status: 200
+				});
+			})
+			.catch(() => {
+				reject({
+					message: "Something Went Wrong",
+					status: 500
+				});
+			});
 	});
 };
 
 exports.resetPasswordByToken = data => {
 	return new Promise((resolve, reject) => {
-		jwt.verify(data.token, config.secret, (err, decoded) => {
-			if (err) {
+		jwt
+			.verify(data.token, config.secret)
+			.then(decoded => {
+				return user.findOne({
+					email: decoded.email
+				});
+			})
+			.then(user_data => {
+				return user.findByIdAndUpdate(user_data._id, {
+					hashed_password: hashPasswordUsingBcrypt(data.password),
+					forgot_password_token: ""
+				});
+			})
+			.then(() => {
 				resolve({
 					status: 200,
-					message: err
+					message: "Password Successfully Changed"
 				});
-			} else {
-				console.log(data.password, "pass");
-				user.findOne({
-					email: decoded.email
-				}, (err, user_data) => {
-					user.findByIdAndUpdate(
-						user_data._id, {
-							hashed_password: hashPasswordUsingBcrypt(data.password),
-							forgot_password_token: ""
-						},
-						(err, updated_data) => {
-							if (err) {
-								reject({
-									status: 401,
-									message: err
-								});
-							} else {
-								resolve({
-									status: 200,
-									message: "Password Successfully Changed"
-								});
-							}
-						}
-					);
-				});
-			}
-		});
+			})
+			.catch(
+				reject({
+					status: 500,
+					message: "Token Expired"
+				})
+			);
 	});
 };
 
 exports.deviceNotification = data => {
 	return new Promise((resolve, reject) => {
+		var session_data = {};
+		const notification_data = {};
 		console.log(JSON.stringify(data), "-----------REQUEST_DATA-----------");
 		if (data.device_data._id == data.owner_id) {
 			sessionmanager
 				.getSessionData(data)
-				.then(session_data => {
-					console.log(
-						JSON.stringify(session_data),
-						"-----------SESSION_DATA-----------"
-					);
-					device.findById(data.device_id, ["is_available"], (err, is_available) => {
-						if (err) {
-							reject({
-								status: 404,
-								message: "Device not found."
-							});
-						} else if (is_available) {
+				.then(session => {
+					session_data = session;
+					console.log(JSON.stringify(session), "-----------SESSION_DATA-----------");
+					return device.findById(data.device_id, ["is_available"]);
+				})
+				.then(is_available => {
+					if (is_available.is_available) {
 
-							const notification_data = {
-								assignee_id: data.assignee_id,
-								device_id: data.device_id,
-								owner_id: data.owner_id,
-								deviceToken: session_data[0].deviceToken,
-								message: data.message
-								//need to impliment with transection
-							};
-							console.log("");
-							notificationmanager
-								.sendNotification(notification_data)
-								.then(resolved_data => {
-									console.log(
-										JSON.stringify(resolved_data),
-										"-----------NOTIFICATION_RESPONSE-----------"
-									);
-									var transection_data = {
-										device_id: notification_data.device_id,
-										owner_id: notification_data.owner_id,
-										assignee_id: notification_data.assignee_id
-									};
-									transactionmanager
-										.addTransaction(transection_data)
-										.then(transection_responce_data => {
-											user.findByIdAndUpdate(
-												notification_data.assignee_id, {
-													$inc: {
-														device_request_count: 1
-													}
-												},
-												(err, updated_data) => {
-													if (err) {
-														reject({
-															status: 401,
-															message: err
-														});
-													} else {
-														resolve({
-															status: 200,
-															message: "Sucess"
-														});
-													}
-												}
-											);
+						notification_data.assignee_id = data.assignee_id;
+						notification_data.device_id = data.device_id;
+						notification_data.owner_id = data.owner_id;
+						notification_data.deviceToken = session_data[0].deviceToken;
+						notification_data.message = data.message;
 
-											user.findByIdAndUpdate(
-												notification_data.owner_id, {
-													$inc: {
-														device_shared_count: 1
-													}
-												},
-												(err, updated_data) => {
-													if (err) {
-														reject({
-															status: 401,
-															message: err
-														});
-													} else {
-														resolve({
-															status: 200,
-															message: "Sucess"
-														});
-													}
-												}
-											);
+						return notificationmanager.sendNotification(notification_data);
+					} else {
+						reject({
+							status: 404,
+							message: "Device is currently using by it's owner."
+						});
+					}
+				})
+				.then(resolved_data => {
+					console.log(JSON.stringify(resolved_data), "-----------NOTIFICATION_RESPONSE-----------");
 
-											device.findByIdAndUpdate(
-												notification_data.device_id, {
-													$inc: {
-														shared_count: 1
-													},
-													is_available: false,
-													assignee_id: notification_data.assignee_id
-												}, {
-													new: true
-												},
-												(err, updated_data) => {
-													if (err) {
-														reject({
-															status: 401,
-															message: err
-														});
-													} else {
-														resolve({
-															status: 200,
-															message: "Sucess"
-														});
-													}
-												}
-											);
-										})
-										.catch(err => {
-											reject({
-												status: 404,
-												message: "Something went wrong"
-											});
-										});
-								})
-								.catch(err => {
-									reject(err);
-								});
-						} else {
-							reject({
-								status: 404,
-								message: "Device is currently using by it's owner."
-							});
+					var transection_data = {
+						device_id: notification_data.device_id,
+						owner_id: notification_data.owner_id,
+						assignee_id: notification_data.assignee_id
+					};
+
+					return transactionmanager.addTransaction(transection_data);
+				})
+				.then(() => {
+					return user.findByIdAndUpdate(notification_data.assignee_id, {
+						$inc: {
+							device_request_count: 1
 						}
 					});
 				})
-				.catch(err => {
-					reject(err);
+				.then(() => {
+					return user.findByIdAndUpdate(notification_data.owner_id, {
+						$inc: {
+							device_shared_count: 1
+						}
+					});
+				})
+				.then(() => {
+					return device.findByIdAndUpdate(notification_data.device_id, {
+						$inc: {
+							shared_count: 1
+						},
+						is_available: false,
+						assignee_id: notification_data.assignee_id
+					});
+				})
+				.then(() => {
+					resolve({
+						status: 200,
+						message: "Sucess"
+					});
+				})
+				.catch(() => {
+					reject({
+						status: 404,
+						message: "User Not Available."
+					});
 				});
 		} else {
 			reject({
@@ -795,73 +708,52 @@ exports.deviceNotification = data => {
 
 exports.deviceReturnNotification = data => {
 	return new Promise((resolve, reject) => {
+		var session_data = {};
+		const notification_data = {};
 		console.log(JSON.stringify(data), "-----------REQUEST_DATA-----------");
 		sessionmanager
 			.getSessionData(data)
-			.then(session_data => {
-				console.log(
-					JSON.stringify(session_data),
-					"-----------SESSION_DATA-----------"
-				);
-				const notification_data = {
-					assignee_id: data.assignee_id,
-					device_id: data.device_id,
-					owner_id: data.owner_id,
-					deviceToken: session_data[0].deviceToken,
-					message: data.message
-					//need to impliment with transection
-				};
-				console.log("");
-				notificationmanager
-					.sendNotification(notification_data)
-					.then(resolved_data => {
-						console.log(
-							JSON.stringify(resolved_data),
-							"-----------NOTIFICATION_RESPONSE-----------"
-						);
-						var transection_data = {
-							device_id: notification_data.device_id,
-							owner_id: notification_data.owner_id,
-							assignee_id: null
-						};
-						transactionmanager
-							.addTransaction(transection_data)
-							.then(transection_responce_data => {
-								device.findByIdAndUpdate(
-									notification_data.device_id, {
-										is_available: true,
-										assignee_id: notification_data.owner_id
-									}, {
-										new: true
-									},
-									(err, updated_data) => {
-										if (err) {
-											reject({
-												status: 401,
-												message: err
-											});
-										} else {
-											resolve({
-												status: 200,
-												message: "Sucess"
-											});
-										}
-									}
-								);
-							})
-							.catch(err => {
-								reject({
-									status: 404,
-									message: "Something went wrong"
-								});
-							});
-					})
-					.catch(err => {
-						reject(err);
-					});
+			.then(session => {
+				session_data = session;
+				console.log(JSON.stringify(session), "-----------SESSION_DATA-----------");
+
+				notification_data.assignee_id = data.assignee_id;
+				notification_data.device_id = data.device_id;
+				notification_data.owner_id = data.owner_id;
+				notification_data.deviceToken = session_data[0].deviceToken;
+				notification_data.message = data.message;
+
+				return notificationmanager.sendNotification(notification_data);
 			})
-			.catch(err => {
-				reject(err);
+			.then(resolved_data => {
+				console.log(JSON.stringify(resolved_data),"-----------NOTIFICATION_RESPONSE-----------");
+				var transection_data = {
+					device_id: notification_data.device_id,
+					owner_id: notification_data.owner_id,
+					assignee_id: null
+				};
+				return transactionmanager.addTransaction(transection_data);
+
+			})
+			.then(() => {
+				return device.findByIdAndUpdate(
+					notification_data.device_id, {
+						is_available: true,
+						assignee_id: notification_data.owner_id
+					}
+				);
+			})
+			.then(() => {
+				resolve({
+					status: 200,
+					message: "Sucess"
+				});
+			})
+			.catch(() => {
+				reject({
+					status: 401,
+					message: "Something went wrong"
+				});
 			});
 	});
 };
@@ -869,7 +761,10 @@ exports.deviceReturnNotification = data => {
 exports.updateStatusRequest = () => {
 	return new Promise((resolve, reject) => {
 		let criteria = {
-			deviceType: constant.android
+			deviceType: constant.android,
+			is_Active: {
+				$ne: false
+			}
 		};
 
 		let options = {
@@ -880,57 +775,45 @@ exports.updateStatusRequest = () => {
 		sessionmanager
 			.getAllActiveSessions(criteria, options)
 			.then(activeUsers => {
-				activeUsers
-					.forEach(activeUser => {
-						activeUser.message = constant.updateStatusMessage;
-						notificationmanager.sendNotification(activeUser);
-					})
-					.then(() => {
-						resolve(constant.success);
-					})
-					.catch(() => {
-						reject(constant.failed);
-					});
+				async.map(activeUsers, send, () => {
+					resolve(constant.success);
+				});
 			})
-			.catch(err => {
-				reject(err);
+
+			.catch(() => {
+				reject(constant.falure);
 			});
 	});
 };
 
 exports.updatedeviceStatus = data => {
 	return new Promise((resolve, reject) => {
-		jwt.verify(data.token, config.secret, (err, decoded) => {
-			if (err) {
+		jwt.verify(data.token, config.secret)
+			.then(() => {
+				let updateObj = {
+					is_available: data.is_available
+				};
+				return device.findByIdAndUpdate(
+					data._id,
+					updateObj, {
+						new: true
+					}
+				);
+			})
+
+			.then(() => {
+				resolve({
+					status: 200,
+					message: constant.success
+				});
+			})
+
+			.catch((err) => {
 				reject({
 					status: 401,
 					message: err
 				});
-			} else {
-				let updateObj = {
-					is_available: data.is_available
-				};
-				device.findByIdAndUpdate(
-					data._id,
-					updateObj, {
-						new: true
-					},
-					(err, model) => {
-						if (err) {
-							reject({
-								status: 401,
-								message: err
-							});
-						} else {
-							resolve({
-								status: 200,
-								message: constant.success
-							});
-						}
-					}
-				);
-			}
-		});
+			});
 	});
 };
 
@@ -938,4 +821,4 @@ exports.test = user_id => {
 	user.find(user_id, (err, data) => {
 		console.log(JSON.stringify(data));
 	});
-};
+}

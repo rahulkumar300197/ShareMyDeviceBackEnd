@@ -3,5 +3,6 @@
   "android": "ANDROID",
   "ios": "IOS",
   "success": "Success",
-  "failed": "Failed"
+  "failed": "Failed",
+  "Device_Not_Found":"Device Not Found"
 }
