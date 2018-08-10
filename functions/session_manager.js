@@ -152,7 +152,7 @@ exports.removeSession = (data) => {
                 status: 200
             }))
             .catch(() => reject({
-                message: "Not Found",
+                message: "User already logout",
                 status: 404
             }));
     });
@@ -167,12 +167,14 @@ exports.getSessionData = (user_data) => {
             }
         }, (err, data) => {
             if (err) {
-                reject(err);
+                reject({
+                    data: "Somehing went wrong"
+                });
             } else if (data.length !== 0) {
                 resolve(data);
             } else {
                 reject({
-                    data: "Not found"
+                    data: "User is Offline"
                 });
             }
         });
@@ -193,7 +195,7 @@ exports.getAllActiveSessions = (criteria, options) => {
 
 exports.deactivateSession = (user_id) => {
     return new Promise((resolve, reject) => {
-        session.findByIdAndUpdate(user_id, {
+        session.update({userId: user_id}, {
                 is_Active: false
             })
             .then(() => resolve({

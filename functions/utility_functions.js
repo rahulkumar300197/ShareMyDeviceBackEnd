@@ -296,9 +296,11 @@ exports.checkAutorization = (req, res, next) => {
 	//console.log(bearerHeader);
 	if (typeof bearerHeader === undefined) {
 		res.sendStatus(403);
-	} else if (bearerHeader == undefined) {
+	} else if (bearerHeader === undefined) {
 		res.sendStatus(403);
-	} else if (bearerHeader == null) {
+	} else if (bearerHeader === null) {
+		res.sendStatus(403);
+	} else if (bearerHeader === '') {
 		res.sendStatus(403);
 	} else {
 		const bearer = bearerHeader.split(" ");
