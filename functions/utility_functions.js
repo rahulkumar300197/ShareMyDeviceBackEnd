@@ -97,7 +97,8 @@ exports.registerUser = data => {
 						data._id = undefined;
 						resolve({
 							access_token: access_token,
-							user_data: user_data
+							user_data: user_data,
+							device_data: []
 						});
 					})
 					.catch(() => {});
