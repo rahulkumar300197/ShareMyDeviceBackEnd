@@ -120,7 +120,6 @@ exports.registerUser = data => {
 						resolve({
 							access_token: access_token,
 							user_data: user_data,
-							device_data: []
 						});
 					})
 					.catch(() => {});
@@ -132,6 +131,7 @@ exports.registerUser = data => {
 					expiresIn: 86400
 				});
 				response_data.access_token = access_token;
+				response_data.device_data = [];
 				resolve(response_data);
 			})
 
