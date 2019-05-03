@@ -16,6 +16,10 @@ const sessionSchema = mongoose.Schema({
   },
   deviceToken: {
     type: String
+  },
+  is_Active: {
+    type: Boolean,
+    default: false
   }
 
 });

@@ -1,5 +1,4 @@
 'use strict';
-const auth = require('basic-auth');
 const jwt = require('jsonwebtoken');
 const CronJob = require('cron').CronJob;
 const config = require('./config/config');
@@ -96,13 +95,14 @@ module.exports = router => {
 		const data = req.body.token;
 		const verify = jwt.verify(data, config.secret);
 		if (verify._id) {
-			sessions.removeSession(verify._id)
+			sessions.deactivateSession(verify._id)
 				.then((result) => {
 					res.status(result.status).json(result);
 				})
 				.catch((err) => {
 					res.status(err.status).json(err);
 				});
+
 		} else {
 			res.status(404).json({
 				message: "Not Found"

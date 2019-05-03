@@ -1,12 +1,10 @@
 'use strict';
 const session = require('../models/session');
 
-const sessionData = (user_id) => {
+const sessionData = (options) => {
     return new Promise((resolve, reject) => {
-        if (user_id) {
-            session.findOne({
-                userId: user_id
-            }, (err, data) => {
+        if (options.userId) {
+            session.findOne(options, (err, data) => {
                 if (err) reject(err);
                 // console.log(data);
                 resolve(data);
@@ -28,12 +26,14 @@ const deleteSession = (user_id) => {
                 if (err) resolve(err);
                 //console.log("Removed");
                 resolve({
-                    message: "removed"
+                    message: "removed",
+                    status: 200
                 });
             });
         } else {
             resolve({
-                message: "Not Found"
+                message: "Not Found",
+                status: 404
             });
         }
     });
@@ -45,7 +45,8 @@ const newSession = (user_data) => {
             userId: user_data._id,
             remoteIP: user_data.ip,
             deviceType: user_data.deviceType,
-            deviceToken: user_data.deviceToken
+            deviceToken: user_data.deviceToken,
+            is_Active: true
         });
 
         newSession.save()
@@ -75,36 +76,62 @@ const newSession = (user_data) => {
 
 exports.setSession = (data) => {
     return new Promise((resolve, reject) => {
-        sessionData(data._id + "")
+        sessionData({
+                userId: data._id
+            })
             .then((session_data) => {
+                console.log("=======SESSION======", session_data);
                 if (session_data == null) {
                     newSession(data)
                         .then((newsession) => {
-                            resolve(newsession);
-                        })
-                        .catch((err) => {});
+                            if (newsession.status == 201) {
+                                resolve({
+                                    _id: newsession._id
+                                });
+                            }
+                        });
                 } else {
                     deleteSession(data._id + "")
                         .then((rem) => {
-                            newSession(data)
-                                .then((newsession) => {
-                                    resolve(newsession);
-                                })
-                                .catch((err) => {});
+                            if (rem.status == 200) {
+                                newSession(data)
+                                    .then((newsession) => {
+                                        resolve({
+                                            _id: newsession._id
+                                        });
+                                    })
+                                    .catch();
+                            } else {
+                                reject({
+                                    status: 500,
+                                    message: 'Internal Server Error !'
+                                });
+                            }
                         })
-                        .catch((err) => {});
+                        .catch();
                 }
             })
-            .catch((err) => {
-                reject(err)
+            .catch(() => {
+                console.log("888888888888888888888");
+                reject({
+                    status: 500,
+                    message: 'Internal Server Error !'
+                });
             });
     });
 }
 
 exports.verifySession = (session_data) => {
+    console.log("=========Session Data=========", session_data);
     return new Promise((resolve, reject) => {
-        sessionData(session_data._id)
+        sessionData({
+                userId: session_data._id,
+                is_Active: {
+                    $ne: false
+                }
+            })
             .then((data) => {
+                console.log(data);
                 if (session_data.deviceType === data.deviceType && session_data.deviceToken === data.deviceToken) {
                     resolve(true);
                 } else {
@@ -125,7 +152,7 @@ exports.removeSession = (data) => {
                 status: 200
             }))
             .catch(() => reject({
-                message: "Not Found",
+                message: "User already logout",
                 status: 404
             }));
     });
@@ -134,12 +161,21 @@ exports.removeSession = (data) => {
 exports.getSessionData = (user_data) => {
     return new Promise((resolve, reject) => {
         session.find({
-            userId: user_data.owner_id
+            userId: user_data.owner_id,
+            is_Active: {
+                $ne: false
+            }
         }, (err, data) => {
             if (err) {
-                reject(err);
-            } else {
+                reject({
+                    data: "Somehing went wrong"
+                });
+            } else if (data.length !== 0) {
                 resolve(data);
+            } else {
+                reject({
+                    data: "User is Offline"
+                });
             }
         });
     });
@@ -154,5 +190,21 @@ exports.getAllActiveSessions = (criteria, options) => {
                 resolve(data);
             }
         });
+    });
+};
+
+exports.deactivateSession = (user_id) => {
+    return new Promise((resolve, reject) => {
+        session.update({userId: user_id}, {
+                is_Active: false
+            })
+            .then(() => resolve({
+                message: "Successfully Logout",
+                status: 200
+            }))
+            .catch(() => reject({
+                message: "Not Found",
+                status: 404
+            }));
     });
 };
